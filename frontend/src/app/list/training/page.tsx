@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import axios from "axios";
 
 type TrainingField = "TR101" | "TR102" | "TR103";
 
-type TrainingFormData = {
+interface TrainingData {
+  _id?: string;
   trainingField: TrainingField;
   organisationName: string;
   organisationDetails: string;
@@ -12,30 +14,54 @@ type TrainingFormData = {
   fieldOfWork: string;
   projectsMade: string;
   projectDescription: string;
-  pdfFile?: File | null;
-  pdfPreview?: string | null;
-};
+  trainingDuration: string;
+  certificateAwarded: boolean;
+  certificatepdf?: string; // URL from Cloudinary
+}
 
 export default function TrainingPage() {
   const [selectedTraining, setSelectedTraining] = useState<TrainingField | "">("");
-  const [formData, setFormData] = useState<Partial<TrainingFormData>>({});
-  const [submittedTrainings, setSubmittedTrainings] = useState<TrainingFormData[]>([]);
+  const [formData, setFormData] = useState<Partial<TrainingData & { pdfFile?: File; pdfPreview?: string }>>({});
+  const [submittedTrainings, setSubmittedTrainings] = useState<TrainingData[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const MAX_FILE_SIZE_MB = 5;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const target = e.target;
-    const { name } = target;
+  useEffect(() => {
+    const fetchTrainings = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("http://localhost:5000/api/Training/me", {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        });
+        if (res.data.success) setSubmittedTrainings(res.data.data);
+      } catch (err) {
+        console.error("Error fetching trainings:", err);
+      }
+    };
+    fetchTrainings();
+  }, []);
 
-    const value = target instanceof HTMLInputElement ? target.value : target.value;
+const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const { name, type, value } = e.target;
 
+  if (type === "checkbox") {
+    const target = e.target as HTMLInputElement; // ✅ Type assertion
+    setFormData((prev) => ({
+      ...prev,
+      [name]: target.checked,
+    }));
+  } else {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-  };
+  }
+};
+
+
 
   const handleTrainingSelect = (type: TrainingField) => {
     setSelectedTraining(type);
@@ -43,7 +69,7 @@ export default function TrainingPage() {
     setError("");
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -56,17 +82,16 @@ export default function TrainingPage() {
       return;
     }
 
-    setError("");
     setFormData((prev) => ({
       ...prev,
       pdfFile: file,
       pdfPreview: URL.createObjectURL(file),
     }));
+    setError("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-
     if (!selectedTraining) {
       setError("Please select a training type.");
       return;
@@ -79,37 +104,74 @@ export default function TrainingPage() {
       "fieldOfWork",
       "projectsMade",
       "projectDescription",
+      "trainingDuration",
     ];
 
     for (const field of requiredFields) {
-      if (!formData[field as keyof TrainingFormData]) {
+      if (!formData[field as keyof TrainingData]) {
         setError("Please fill in all required fields.");
         return;
       }
     }
 
-    if (!formData.pdfFile) {
-      setError("Please upload a PDF for the training.");
-      return;
-    }
+    const payload = new FormData();
+    payload.append("trainingField", formData.trainingField!);
+    payload.append("organisationName", formData.organisationName!);
+    payload.append("organisationDetails", formData.organisationDetails!);
+    payload.append("organisationSupervisor", formData.organisationSupervisor!);
+    payload.append("fieldOfWork", formData.fieldOfWork!);
+    payload.append("projectsMade", formData.projectsMade!);
+    payload.append("projectDescription", formData.projectDescription!);
+    payload.append("trainingDuration", formData.trainingDuration!);
+    payload.append("certificateAwarded", String(formData.certificateAwarded ?? false));
+    if (formData.pdfFile) payload.append("certificatepdf", formData.pdfFile);
 
-    if (editingIndex !== null) {
-      const updated = [...submittedTrainings];
-      updated[editingIndex] = formData as TrainingFormData;
-      setSubmittedTrainings(updated);
-      setEditingIndex(null);
-    } else {
-      setSubmittedTrainings((prev) => [...prev, formData as TrainingFormData]);
-    }
+    try {
+      const token = localStorage.getItem("token");
+      let res;
 
-    setFormData({});
-    setSelectedTraining("");
-    setError("");
+      if (editingIndex !== null && submittedTrainings[editingIndex]._id) {
+        res = await axios.put(
+          `http://localhost:5000/api/Training/${submittedTrainings[editingIndex]._id}`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+            withCredentials: true,
+          }
+        );
+      } else {
+        res = await axios.post("http://localhost:5000/api/Training", payload, {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+          withCredentials: true,
+        });
+      }
+
+      if (res.data.success) {
+        const savedTraining: TrainingData = res.data.data;
+        const updatedList =
+          editingIndex !== null
+            ? submittedTrainings.map((t, i) => (i === editingIndex ? savedTraining : t))
+            : [...submittedTrainings, savedTraining];
+
+        setSubmittedTrainings(updatedList);
+        setFormData({});
+        setSelectedTraining("");
+        setEditingIndex(null);
+        setError("");
+      }
+    } catch (err) {
+      console.error("Error submitting training:", err);
+      setError("Failed to submit training.");
+    }
   };
 
   const handleEdit = (index: number) => {
-    setFormData(submittedTrainings[index]);
-    setSelectedTraining(submittedTrainings[index].trainingField);
+    const training = submittedTrainings[index];
+    setFormData({
+      ...training,
+      pdfPreview: training.certificatepdf,
+    });
+    setSelectedTraining(training.trainingField);
     setEditingIndex(index);
   };
 
@@ -123,94 +185,41 @@ export default function TrainingPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-start p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
       <div className="w-full max-w-3xl p-8 sm:p-10 bg-white shadow-2xl rounded-3xl border border-gray-200">
-        <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">
-          🎓 Student Training
-        </h2>
+        <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">🎓 Student Training</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row justify-between gap-3">
-            <button type="button" className={buttonClass("TR101")} onClick={() => handleTrainingSelect("TR101")}>
-              TR101
-            </button>
-            <button type="button" className={buttonClass("TR102")} onClick={() => handleTrainingSelect("TR102")}>
-              TR102
-            </button>
-            <button type="button" className={buttonClass("TR103")} onClick={() => handleTrainingSelect("TR103")}>
-              TR103
-            </button>
+            <button type="button" className={buttonClass("TR101")} onClick={() => handleTrainingSelect("TR101")}>TR101</button>
+            <button type="button" className={buttonClass("TR102")} onClick={() => handleTrainingSelect("TR102")}>TR102</button>
+            <button type="button" className={buttonClass("TR103")} onClick={() => handleTrainingSelect("TR103")}>TR103</button>
           </div>
 
           {selectedTraining && (
             <div className="flex flex-col gap-3 mt-3">
-              <input
-                type="text"
-                name="organisationName"
-                placeholder="Organisation Name"
-                value={formData?.organisationName || ""}
-                onChange={handleInputChange}
-                className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm"
-                required
-              />
-              <textarea
-                name="organisationDetails"
-                placeholder="Organisation Details"
-                value={formData?.organisationDetails || ""}
-                onChange={handleInputChange}
-                className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm resize-none"
-                rows={3}
-                required
-              />
-              <input
-                type="text"
-                name="organisationSupervisor"
-                placeholder="Supervisor Name"
-                value={formData?.organisationSupervisor || ""}
-                onChange={handleInputChange}
-                className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm"
-                required
-              />
-              <input
-                type="text"
-                name="fieldOfWork"
-                placeholder="Field of Work"
-                value={formData?.fieldOfWork || ""}
-                onChange={handleInputChange}
-                className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm"
-                required
-              />
-              <input
-                type="text"
-                name="projectsMade"
-                placeholder="Projects Made"
-                value={formData?.projectsMade || ""}
-                onChange={handleInputChange}
-                className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm"
-                required
-              />
-              <textarea
-                name="projectDescription"
-                placeholder="Project Description"
-                value={formData?.projectDescription || ""}
-                onChange={handleInputChange}
-                className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm resize-none"
-                rows={3}
-                required
-              />
+              <input type="text" name="organisationName" placeholder="Organisation Name" value={formData.organisationName || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm" required />
+              <textarea name="organisationDetails" placeholder="Organisation Details" value={formData.organisationDetails || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm resize-none" rows={3} required />
+              <input type="text" name="organisationSupervisor" placeholder="Supervisor Name" value={formData.organisationSupervisor || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm" required />
+              <input type="text" name="fieldOfWork" placeholder="Field of Work" value={formData.fieldOfWork || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm" required />
+              <input type="text" name="projectsMade" placeholder="Projects Made" value={formData.projectsMade || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm" required />
+              <textarea name="projectDescription" placeholder="Project Description" value={formData.projectDescription || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm resize-none" rows={3} required />
+              <input type="text" name="trainingDuration" placeholder="Training Duration (e.g., 4 weeks)" value={formData.trainingDuration || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm" required />
+
+             <label className="flex items-center gap-2 mt-2">
+  <input
+    type="checkbox"
+    name="certificateAwarded"
+    checked={formData.certificateAwarded || false}
+    onChange={handleInputChange}
+    className="w-5 h-5"
+  />
+  Certificate Awarded
+</label>
+
 
               <label className="font-medium text-gray-700 mt-2">Upload PDF:</label>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={handleFileChange}
-                className="border border-gray-300 p-3 rounded-2xl w-full focus:ring-2 focus:ring-indigo-300 shadow-sm"
-                required={!formData?.pdfFile}
-              />
-              {formData?.pdfFile && (
-                <p className="text-gray-700 text-sm mt-1 truncate">
-                  Uploaded File: <span className="font-medium">{formData.pdfFile.name}</span>
-                </p>
-              )}
-              {formData?.pdfPreview && (
+              <input type="file" accept="application/pdf" onChange={handleFileChange} className="border border-gray-300 p-3 rounded-2xl w-full focus:ring-2 focus:ring-indigo-300 shadow-sm" required={!formData.certificatepdf} />
+
+              {formData.pdfPreview && (
                 <div className="mt-3 border border-gray-200 rounded-2xl overflow-hidden shadow-md">
                   <p className="bg-indigo-600 text-white p-2 text-sm font-medium">PDF Preview</p>
                   <iframe src={formData.pdfPreview} className="w-full h-56 sm:h-72" title="PDF Preview"></iframe>
@@ -221,10 +230,7 @@ export default function TrainingPage() {
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <button
-            type="submit"
-            className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold hover:from-purple-500 hover:to-indigo-500 shadow-lg transition-all"
-          >
+          <button type="submit" className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold hover:from-purple-500 hover:to-indigo-500 shadow-lg transition-all">
             {editingIndex !== null ? "Update" : "Submit"}
           </button>
         </form>
@@ -242,22 +248,13 @@ export default function TrainingPage() {
                   <p className="text-sm text-gray-600">Field: {training.fieldOfWork}</p>
                   <p className="text-sm text-gray-600">Projects: {training.projectsMade}</p>
                   <p className="text-sm text-gray-600">Description: {training.projectDescription}</p>
-                  {training.pdfPreview && (
-                    <a
-                      href={training.pdfPreview}
-                      target="_blank"
-                      className="text-indigo-600 underline text-sm"
-                    >
-                      View PDF
-                    </a>
+                  <p className="text-sm text-gray-600">Duration: {training.trainingDuration}</p>
+                  <p className="text-sm text-gray-600">Certificate Awarded: {training.certificateAwarded ? "Yes" : "No"}</p>
+                  {training.certificatepdf && (
+                    <a href={training.certificatepdf} target="_blank" className="text-indigo-600 underline text-sm">View PDF</a>
                   )}
                 </div>
-                <button
-                  onClick={() => handleEdit(index)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600"
-                >
-                  Edit
-                </button>
+                <button onClick={() => handleEdit(index)} className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600">Edit</button>
               </div>
             ))}
           </div>
