@@ -1,209 +1,260 @@
 "use client";
-import Link from "next/link";
-import { useState } from "react";
 
-interface PlacementEntry {
-  title: string;
-  organization: string;
-  description: string;
+import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import axios from "axios";
+
+interface PlacementData {
+  _id?: string;
+  companyName: string;
+  role: string;
+  package: string;
+  companyDescription: string;
   yearOfPlacement: string;
-  pdfFile: File | null;
-  pdfPreview: string | null;
+  offerLetterUrl?: string; // Cloudinary PDF URL
+  pdfFile?: File;
+  pdfPreview?: string;
 }
 
-export default function PlacementsPage() {
-  const [entry, setEntry] = useState<PlacementEntry>({
-    title: "",
-    organization: "",
-    description: "",
-    yearOfPlacement: "",
-    pdfFile: null,
-    pdfPreview: null,
-  });
+const PlacementsPage: React.FC = () => {
+  const [formData, setFormData] = useState<Partial<PlacementData>>({});
+  const [submittedPlacements, setSubmittedPlacements] = useState<PlacementData[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [submitted, setSubmitted] = useState(false);
 
-  const MAX_FILE_SIZE_MB = 5;
+  // 🔹 Fetch existing placements on load
+  useEffect(() => {
+    const fetchPlacements = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("http://localhost:5000/api/Placement/me", {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        });
+        if (res.data.success) setSubmittedPlacements(res.data.data);
+      } catch (err) {
+        console.error("Error fetching placements:", err);
+      }
+    };
+    fetchPlacements();
+  }, []);
 
-  const handleChange = (field: keyof PlacementEntry, value: string) => {
-    setEntry((prev) => ({ ...prev, [field]: value }));
+  // 🔹 Handle input change
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== "application/pdf") {
-      setError("Only PDF files are allowed.");
-      return;
+  // 🔹 Handle PDF upload
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.type !== "application/pdf") {
+        setError("Only PDF files are allowed.");
+        return;
+      }
+      setError("");
+      setFormData((prev) => ({
+        ...prev,
+        pdfFile: file,
+        pdfPreview: URL.createObjectURL(file),
+      }));
     }
-    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      setError(`File size must be less than ${MAX_FILE_SIZE_MB} MB.`);
-      return;
-    }
-
-    setEntry((prev) => ({
-      ...prev,
-      pdfFile: file,
-      pdfPreview: URL.createObjectURL(file),
-    }));
-    setError("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 🔹 Submit form
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!entry.title || !entry.organization || !entry.yearOfPlacement) {
-      setError("Please fill in all required fields.");
-      return;
+
+    const requiredFields = ["companyName", "role", "package", "yearOfPlacement"];
+    for (const field of requiredFields) {
+      if (!formData[field as keyof PlacementData]) {
+        setError("Please fill in all required fields.");
+        return;
+      }
     }
-    console.log("Placement Submitted:", entry);
-    setError("");
-    setSubmitted(true);
+
+    const payload = new FormData();
+    payload.append("companyName", formData.companyName!);
+    payload.append("role", formData.role!);
+    payload.append("package", formData.package!);
+    payload.append("companyDescription", formData.companyDescription || "");
+    payload.append("yearOfPlacement", formData.yearOfPlacement!);
+    if (formData.pdfFile) payload.append("offerLetter", formData.pdfFile);
+
+    try {
+      const token = localStorage.getItem("token");
+      let res;
+
+      if (editingIndex !== null && submittedPlacements[editingIndex]._id) {
+        // Update
+        res = await axios.put(
+          `http://localhost:5000/api/Placement/${submittedPlacements[editingIndex]._id}`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+            withCredentials: true,
+          }
+        );
+      } else {
+        // Create
+        res = await axios.post("http://localhost:5000/api/Placement", payload, {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+          withCredentials: true,
+        });
+      }
+
+      if (res.data.success) {
+        const savedPlacement: PlacementData = res.data.data;
+        const updatedList =
+          editingIndex !== null
+            ? submittedPlacements.map((p, i) => (i === editingIndex ? savedPlacement : p))
+            : [...submittedPlacements, savedPlacement];
+
+        setSubmittedPlacements(updatedList);
+        setFormData({});
+        setEditingIndex(null);
+        setError("");
+      }
+    } catch (err) {
+      console.error("Error submitting placement:", err);
+      setError("Failed to submit placement.");
+    }
   };
 
-  const handleEdit = () => setSubmitted(false);
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 6 }, (_, i) => (currentYear - i).toString());
+  // 🔹 Edit placement
+  const handleEdit = (index: number) => {
+    const placement = submittedPlacements[index];
+    setFormData({
+      ...placement,
+      pdfFile: undefined,
+      pdfPreview: placement.offerLetterUrl,
+    });
+    setEditingIndex(index);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF] p-6">
-      <div className="max-w-4xl w-full p-8 sm:p-10 bg-white shadow-2xl rounded-3xl border border-gray-200">
-          <Link
-    href="/dashboard/student"
-    className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-    aria-label="Go back"
-  >
-    <svg
-      className="w-6 h-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
-    </svg>
-  </Link>
-        <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">
-          🎯 Placement
-        </h2>
+    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-indigo-50 to-indigo-100 py-10">
+      <h2 className="text-4xl font-bold mb-8 text-indigo-700">📌 Placement Details</h2>
 
-        {submitted ? (
-          <div className="text-center flex flex-col items-center gap-6">
-            <h3 className="text-2xl font-bold text-green-600">
-              ✅ Submitted Successfully!
-            </h3>
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-2xl p-8 bg-white rounded-2xl shadow-lg border border-indigo-100"
+      >
+        {error && <p className="mb-4 text-red-500">{error}</p>}
 
-            <div className="w-full mt-6 border border-gray-200 p-4 rounded-2xl shadow-sm">
-              <p><strong>Title:</strong> {entry.title}</p>
-              <p><strong>Organization:</strong> {entry.organization}</p>
-              <p><strong>Year of Placement:</strong> {entry.yearOfPlacement}</p>
-              <p><strong>Description:</strong> {entry.description || "N/A"}</p>
-              {entry.pdfPreview && (
-                <div className="mt-2 border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                  <p className="bg-indigo-600 text-white p-2 text-sm font-medium">
-                    Certificate PDF
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <input
+            type="text"
+            name="companyName"
+            value={formData.companyName || ""}
+            onChange={handleChange}
+            placeholder="Company Name"
+            className="p-3 border rounded-lg"
+            required
+          />
+          <input
+            type="text"
+            name="role"
+            value={formData.role || ""}
+            onChange={handleChange}
+            placeholder="Role"
+            className="p-3 border rounded-lg"
+            required
+          />
+          <input
+            type="text"
+            name="package"
+            value={formData.package || ""}
+            onChange={handleChange}
+            placeholder="Package"
+            className="p-3 border rounded-lg"
+            required
+          />
+          <input
+            type="text"
+            name="yearOfPlacement"
+            value={formData.yearOfPlacement || ""}
+            onChange={handleChange}
+            placeholder="Year of Placement"
+            className="p-3 border rounded-lg"
+            required
+          />
+        </div>
+
+        <textarea
+          name="companyDescription"
+          value={formData.companyDescription || ""}
+          onChange={handleChange}
+          placeholder="Company Description"
+          className="w-full mt-6 p-3 border rounded-lg"
+        />
+
+        {/* PDF Upload */}
+        <div className="mt-6">
+          <label className="block mb-2 text-sm font-medium">Upload Offer Letter (PDF)</label>
+          <input type="file" accept="application/pdf" onChange={handleFileChange} />
+          {formData.pdfPreview && (
+            <a
+              href={formData.pdfPreview}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block mt-2 text-indigo-600 underline"
+            >
+              Preview PDF
+            </a>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="mt-6 w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700"
+        >
+          {editingIndex !== null ? "Update Placement" : "Submit Placement"}
+        </button>
+      </form>
+
+      {/* Submitted Placements */}
+      {submittedPlacements.length > 0 && (
+        <div className="w-full max-w-3xl mt-8">
+          <h3 className="text-2xl font-semibold mb-4 text-indigo-700">📑 Submitted Placements</h3>
+          <div className="flex flex-col gap-4">
+            {submittedPlacements.map((placement, index) => (
+              <div
+                key={index}
+                className="p-5 bg-white border rounded-2xl shadow-md flex justify-between items-start"
+              >
+                <div>
+                  <p className="font-bold">{placement.companyName}</p>
+                  <p className="text-sm text-gray-600">Role: {placement.role}</p>
+                  <p className="text-sm text-gray-600">Package: {placement.package}</p>
+                  <p className="text-sm text-gray-600">Year: {placement.yearOfPlacement}</p>
+                  <p className="text-sm text-gray-600">
+                    Description: {placement.companyDescription}
                   </p>
-                  <iframe
-                    src={entry.pdfPreview}
-                    className="w-full h-52 sm:h-64"
-                    title="PDF Preview"
-                  ></iframe>
+                  {placement.offerLetterUrl && (
+                    <a
+                      href={placement.offerLetterUrl}
+                      target="_blank"
+                      className="text-indigo-600 underline text-sm"
+                    >
+                      View PDF
+                    </a>
+                  )}
                 </div>
-              )}
-            </div>
-
-            <button
-              onClick={handleEdit}
-              className="mt-4 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-indigo-500 transition-all"
-            >
-              Edit Placement
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <div className="border border-gray-200 p-6 rounded-3xl shadow-md bg-white transition-all duration-300 hover:shadow-xl">
-              <h3 className="text-xl font-semibold mb-4 text-indigo-700">Placement Details</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  placeholder="Job Title"
-                  value={entry.title}
-                  onChange={(e) => handleChange("title", e.target.value)}
-                  className="border border-gray-300 p-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
-                  required
-                />
-                <input
-                  type="text"
-                  placeholder="Organization Name"
-                  value={entry.organization}
-                  onChange={(e) => handleChange("organization", e.target.value)}
-                  className="border border-gray-300 p-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
-                  required
-                />
-                <select
-                  value={entry.yearOfPlacement}
-                  onChange={(e) => handleChange("yearOfPlacement", e.target.value)}
-                  className="border border-gray-300 p-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
-                  required
+                <button
+                  onClick={() => handleEdit(index)}
+                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600"
                 >
-                  <option value="">Select Year</option>
-                  {years.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-                <textarea
-                  placeholder="Role Description"
-                  value={entry.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  className="border border-gray-300 p-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 transition col-span-full"
-                  rows={3}
-                />
+                  Edit
+                </button>
               </div>
-
-              <div className="flex flex-col gap-2 mt-4">
-                <label className="font-medium text-gray-700">
-                  Upload Offer Letter / Certificate (PDF)
-                </label>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  onChange={handleFileChange}
-                  className="border border-gray-300 p-3 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 cursor-pointer transition"
-                  required
-                />
-                {entry.pdfFile && (
-                  <p className="text-gray-700 text-sm mt-1 truncate">
-                    Uploaded File: <span className="font-medium">{entry.pdfFile.name}</span>
-                  </p>
-                )}
-                {entry.pdfPreview && (
-                  <div className="mt-2 border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                    <p className="bg-indigo-600 text-white p-2 text-sm font-medium">PDF Preview</p>
-                    <iframe
-                      src={entry.pdfPreview}
-                      className="w-full h-52 sm:h-64"
-                      title="PDF Preview"
-                    ></iframe>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-
-            <button
-              type="submit"
-              className="mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold hover:from-purple-500 hover:to-indigo-500 shadow-lg transition-all"
-            >
-              Submit
-            </button>
-          </form>
-        )}
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default PlacementsPage;
