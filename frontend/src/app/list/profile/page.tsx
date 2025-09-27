@@ -1,8 +1,11 @@
 "use client";
+
+import Link from "next/link";
 import React, { useState } from "react";
 import { FaLinkedin, FaGithub, FaInstagram } from "react-icons/fa";
 
 const ProfileSection = () => {
+
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -39,7 +42,24 @@ const ProfileSection = () => {
   };
 
   return (
+    
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-8">
+           <Link
+    href="/dashboard/student"
+    className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+    aria-label="Go back"
+  >
+    <svg
+      className="w-6 h-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
+    </svg>
+  </Link>
       {/* Header */}
       <div className="flex justify-end mb-6">
         <button
@@ -241,3 +261,5 @@ const ProfileSection = () => {
 };
 
 export default ProfileSection;
+
+

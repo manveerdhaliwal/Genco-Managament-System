@@ -86,19 +86,19 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/announcement.png",
+        icon: "/award.png",
         label: "Certifications",
         href: "/list/certifications",
         visible: ["admin", "teacher", "student", "parent"],
       },
             {
-        icon: "/announcement.png",
+        icon: "/project.png",
         label: "Projects",
         href: "/list/projects",
         visible: ["admin", "teacher", "student", "parent"],
       },
             {
-        icon: "/announcement.png",
+        icon: "/calendar.png", 
         label: "Duty Leaves",
         href: "/dashboard/DutyLeaves",
         visible: ["admin", "teacher", "student", "parent"],

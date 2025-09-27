@@ -1,5 +1,5 @@
-import Menu from "@/components/Menu";
-import Navbar from "@/components/navbar";
+import TeacherMenu from "@/components/TeacherMenu";
+import TeacherNavbar from "@/components/TeacherNavbar";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -19,12 +19,13 @@ export default function DashboardLayout({
           <Image src="/logo.png" alt="logo" width={42} height={42} />
           <span className="hidden lg:block">TheGenconians-GMS</span>
         </Link>
-        <Menu />
+        <TeacherMenu/>
+
       </div>
 
       {/* RIGHT */}
       <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] flex flex-col">
-        <Navbar />
+        <TeacherNavbar/>
         
         {/* Main content */}
         <div className="flex-1 overflow-y-auto p-4">{children}</div>

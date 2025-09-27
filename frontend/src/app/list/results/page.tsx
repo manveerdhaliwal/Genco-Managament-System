@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useState, useEffect } from "react";
 
 type Subject = {
@@ -17,6 +17,7 @@ type Result = {
 };
 
 export default function ResultsSection() {
+
   const [results, setResults] = useState<Result[]>([]);
   const [mostRecent, setMostRecent] = useState<Result | null>(null);
 
@@ -59,6 +60,22 @@ export default function ResultsSection() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 bg-white rounded-2xl shadow-lg mt-6">
+          <Link
+    href="/dashboard/student"
+    className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+    aria-label="Go back"
+  >
+    <svg
+      className="w-6 h-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
+    </svg>
+  </Link>
       <h2 className="text-3xl font-bold text-indigo-700 mb-6">📊 Student Results</h2>
 
       {/* Most Recent Result */}
