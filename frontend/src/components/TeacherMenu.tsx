@@ -52,31 +52,31 @@ const menuItems = [
             {
         icon: "/assignment.png",
         label: "Research Paper",
-        href: "/list/researchpapers",
+        href: "/teacherlist/TresearchPapers",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/calendar.png",
         label: "Training (tr1,tr2,tr3)",
-        href: "/list/training",
+        href: "/teacherlist/Ttraining",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/message.png",
         label: "Placements & Internships",
-        href: "/list/PlacementsInternships",
+        href: "/teacherlist/TplacementsInternships",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: "/award.png",
         label: "Certifications",
-        href: "/list/certifications",
+        href: "/teacherlist/TCertifications",
         visible: ["admin", "teacher", "student", "parent"],
       },
             {
         icon: "/project.png",
         label: "Projects",
-        href: "/list/projects",
+        href: "/teacherlist/Tprojects",
         visible: ["admin", "teacher", "student", "parent"],
       },
             {

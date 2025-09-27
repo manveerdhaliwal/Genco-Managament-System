@@ -1,34 +1,7 @@
 "use client";
-
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-// Full classes data with detailed info
-const classesData: Record<
-  string,
-  {
-    name: string;
-    students: {
-      name: string;
-      roll: string;
-      urn: string;
-      crn: string;
-      phone: string;
-      address: string;
-      track: string;
-      avgCgpa: string;
-      training: string;
-      certifications: string;
-      projects: string;
-      linkedin?: string;
-      github?: string;
-      photo: string;
-      certificatePdf?: string;
-      internshipPdf?: string;
-      researchPaperUrl?: string;
-    }[];
-  }
-> = {
+const classesData = {
   "cse-final-year": {
     name: "CSE Final Year",
     students: [
@@ -51,144 +24,150 @@ const classesData: Record<
         internshipPdf: "/pdfs/ritika_internship.pdf",
         researchPaperUrl: "https://example.com/researchpaper",
       },
-      {
-        name: "Aman Sharma",
-        roll: "2203540",
-        urn: "URN002",
-        crn: "CRN102",
-        phone: "+91-9876543201",
-        address: "45, Model Town, Ludhiana, Punjab",
-        track: "Data Science",
-        avgCgpa: "8.7",
-        training: "Data Analysis Internship at ABC Ltd.",
-        certifications: "Data Science Certification",
-        projects: "Data Analysis, Visualization Dashboard",
-        linkedin: "https://linkedin.com/in/amansharma",
-        github: "https://github.com/amansharma",
-        photo: "https://randomuser.me/api/portraits/men/70.jpg",
-        certificatePdf: "/pdfs/aman_certificate.pdf",
-        internshipPdf: "/pdfs/aman_internship.pdf",
-        researchPaperUrl: "https://example.com/researchpaper2",
-      },
-    ],
-  },
-  "cse-3rd-year": {
-    name: "CSE 3rd Year",
-    students: [
-      {
-        name: "Rohit Verma",
-        roll: "2203539",
-        urn: "URN003",
-        crn: "CRN103",
-        phone: "+91-9876543211",
-        address: "67, Civil Lines, Ludhiana, Punjab",
-        track: "Data Science",
-        avgCgpa: "8.5",
-        training: "Data Visualization Internship",
-        certifications: "Data Analysis Certification",
-        projects: "Dashboard Creation, Data Mining",
-        linkedin: "https://linkedin.com/in/rohitverma",
-        github: "https://github.com/rohitverma",
-        photo: "https://randomuser.me/api/portraits/men/71.jpg",
-        certificatePdf: "/pdfs/rohit_certificate.pdf",
-        internshipPdf: "/pdfs/rohit_internship.pdf",
-        researchPaperUrl: "https://example.com/researchpaper3",
-      },
-      {
-        name: "Simran Kaur",
-        roll: "2203543",
-        urn: "URN004",
-        crn: "CRN104",
-        phone: "+91-9876543212",
-        address: "89, Model Town, Ludhiana, Punjab",
-        track: "Machine Learning",
-        avgCgpa: "9.2",
-        training: "NLP Internship at DEF Ltd.",
-        certifications: "AI & ML Certification",
-        projects: "Chatbot, Text Classification",
-        linkedin: "https://linkedin.com/in/simrankaur",
-        github: "https://github.com/simrankaur",
-        photo: "https://randomuser.me/api/portraits/women/69.jpg",
-        certificatePdf: "/pdfs/simran_certificate.pdf",
-        internshipPdf: "/pdfs/simran_internship.pdf",
-        researchPaperUrl: "https://example.com/researchpaper4",
-      },
     ],
   },
 };
 
 export default function StudentDetail() {
-  const searchParams = useSearchParams();
-  const classId = searchParams.get("classId");
-  const roll = searchParams.get("roll");
+  const classId = "cse-final-year";
+  const roll = "2203542";
 
-  if (!classId || !roll) {
-    return <p className="p-6">Invalid student selected.</p>;
-  }
+  const student = classesData[classId]?.students.find((s) => s.roll === roll);
+  if (!student) return <p className="p-6 text-red-500">Student not found.</p>;
 
-  const student = classesData[classId]?.students.find(s => s.roll === roll);
-
-  if (!student) {
-    return <p className="p-6">Student not found.</p>;
-  }
+  const renderSection = (title: string, content: React.ReactNode, color: string) => (
+    <section className={`bg-white p-4 rounded-lg shadow hover:shadow-md transition duration-200 border-l-4 ${color}`}>
+      <div className="flex flex-col md:flex-row md:items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-800 md:w-48">{title}</h2>
+        <div className="flex-1 text-gray-700">{content}</div>
+      </div>
+    </section>
+  );
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-<Link
-  href={`/dashboard/teacher/classstudent?classId=${classId}`}
-  className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-  aria-label="Go back"
->
-  <svg
-    className="w-6 h-6"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
-  </svg>
-</Link>
-
-
-      <div className="bg-white shadow-md rounded-lg p-6 flex flex-col md:flex-row gap-6">
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        {/* Back Button */}
         <div className="flex-shrink-0">
-          <img
-            src={student.photo}
-            alt={student.name}
-            className="w-48 h-48 rounded-full object-cover border border-gray-300"
-          />
+          <Link
+            href={`/dashboard/teacher/class`}
+            className="inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+            aria-label="Go back"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
+            </svg>
+          </Link>
         </div>
 
-        <div className="flex-1 space-y-3">
-          <h1 className="text-3xl font-bold">{student.name}</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <p><strong>Roll Number:</strong> {student.roll}</p>
-            <p><strong>URN:</strong> {student.urn}</p>
-            <p><strong>CRN:</strong> {student.crn}</p>
-            <p><strong>Phone:</strong> {student.phone}</p>
-            <p className="md:col-span-2"><strong>Address:</strong> {student.address}</p>
-            <p><strong>Track:</strong> {student.track}</p>
-            <p><strong>Average CGPA:</strong> {student.avgCgpa}</p>
-            <p className="md:col-span-2"><strong>Training Details:</strong> {student.training}</p>
-            <p className="md:col-span-2"><strong>Certifications:</strong> {student.certifications}</p>
-            <p className="md:col-span-2"><strong>Projects:</strong> {student.projects}</p>
-            {student.linkedin && (
-              <p><strong>LinkedIn:</strong> <a href={student.linkedin} target="_blank" rel="noopener noreferrer" className="text-indigo-500">{student.linkedin}</a></p>
-            )}
-            {student.github && (
-              <p><strong>GitHub:</strong> <a href={student.github} target="_blank" rel="noopener noreferrer" className="text-indigo-500">{student.github}</a></p>
-            )}
-            {student.certificatePdf && (
-              <p><strong>Certificate PDF:</strong> <a href={student.certificatePdf} target="_blank" rel="noopener noreferrer" className="text-indigo-500">View</a></p>
-            )}
-            {student.internshipPdf && (
-              <p><strong>Internship PDF:</strong> <a href={student.internshipPdf} target="_blank" rel="noopener noreferrer" className="text-indigo-500">View</a></p>
-            )}
-            {student.researchPaperUrl && (
-              <p><strong>Research Paper:</strong> <a href={student.researchPaperUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-500">View</a></p>
-            )}
+        {/* Main Card */}
+        <div className="bg-gradient-to-r from-indigo-50 to-white shadow-lg rounded-xl p-6 flex-1 border border-indigo-100 space-y-6">
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Photo */}
+            <div className="flex-shrink-0">
+              <img
+                src={student.photo}
+                alt={student.name}
+                className="w-48 h-48 rounded-full object-cover border-4 border-indigo-200 shadow-sm"
+              />
+            </div>
+
+            {/* Info Sections */}
+            <div className="flex-1 space-y-4">
+              <h1 className="text-3xl font-bold text-indigo-800 mb-4">{student.name}</h1>
+
+              {renderSection(
+                "Personal Details",
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <p><strong>Roll:</strong> {student.roll}</p>
+                  <p><strong>URN:</strong> {student.urn}</p>
+                  <p><strong>CRN:</strong> {student.crn}</p>
+                  <p><strong>Phone:</strong> {student.phone}</p>
+                  <p className="md:col-span-2"><strong>Address:</strong> {student.address}</p>
+                  <p><strong>Track:</strong> {student.track}</p>
+                  <p><strong>Average CGPA:</strong> {student.avgCgpa}</p>
+                </div>,
+                "border-indigo-500"
+              )}
+
+              {renderSection(
+                "Training",
+                <>
+                  <p>{student.training}</p>
+                  {student.internshipPdf && (
+                    <p>
+                      <strong>Internship PDF:</strong>{" "}
+                      <a href={student.internshipPdf} target="_blank" className="text-green-600 hover:underline">
+                        View
+                      </a>
+                    </p>
+                  )}
+                </>,
+                "border-green-500"
+              )}
+
+              {renderSection(
+                "Certifications",
+                <>
+                  <p>{student.certifications}</p>
+                  {student.certificatePdf && (
+                    <p>
+                      <strong>Certificate PDF:</strong>{" "}
+                      <a href={student.certificatePdf} target="_blank" className="text-yellow-600 hover:underline">
+                        View
+                      </a>
+                    </p>
+                  )}
+                </>,
+                "border-yellow-500"
+              )}
+
+              {renderSection(
+                "Projects",
+                <p>{student.projects}</p>,
+                "border-purple-500"
+              )}
+
+              {student.researchPaperUrl &&
+                renderSection(
+                  "Research",
+                  <a href={student.researchPaperUrl} target="_blank" className="text-pink-600 hover:underline">
+                    View Research Paper
+                  </a>,
+                  "border-pink-500"
+                )}
+
+              {(student.linkedin || student.github) &&
+                renderSection(
+                  "Links",
+                  <div>
+                    {student.linkedin && (
+                      <p>
+                        <strong>LinkedIn:</strong>{" "}
+                        <a href={student.linkedin} target="_blank" className="text-indigo-600 hover:underline">
+                          {student.linkedin}
+                        </a>
+                      </p>
+                    )}
+                    {student.github && (
+                      <p>
+                        <strong>GitHub:</strong>{" "}
+                        <a href={student.github} target="_blank" className="text-indigo-600 hover:underline">
+                          {student.github}
+                        </a>
+                      </p>
+                    )}
+                  </div>,
+                  "border-indigo-300"
+                )}
+            </div>
           </div>
         </div>
       </div>
