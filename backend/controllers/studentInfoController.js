@@ -71,4 +71,21 @@ const getStudentInfo = async (req, res) => {
   }
 };
 
-module.exports = { saveStudentInfo, getMyInfo, getStudentInfo };
+const getAllStudentInfo = async (req, res) => {
+  try {
+    const info = await StudentInfo.find().populate("student", "name email role");
+
+    if (!info || info.length === 0) {
+      return res.status(404).json({ success: false, message: "No student info found!" });
+    }
+
+    res.json({ success: true, data: info });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+module.exports = { saveStudentInfo, getMyInfo, getStudentInfo, getAllStudentInfo };

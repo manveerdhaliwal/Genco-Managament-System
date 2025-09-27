@@ -46,7 +46,7 @@ const StudentTrainingSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
-    certificateDetails: {
+    certificatepdf: {
       type: String,
       required: function () {
         return this.certificateAwarded;

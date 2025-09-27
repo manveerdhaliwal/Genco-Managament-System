@@ -56,8 +56,9 @@ const StudentInfoSchema = new mongoose.Schema(
  
 // NEW FIELD
     advisor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Teacher",
+      //type: mongoose.Schema.Types.ObjectId,
+      //ref: "Teacher",
+      type:String,
       required: true,
     },
   },

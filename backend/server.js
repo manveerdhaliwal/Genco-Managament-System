@@ -10,6 +10,9 @@ const authRoutes = require("./routes/auth");
 const studentInfoRoutes = require("./routes/studentInfo");
 const studentTrainingRoutes = require("./routes/studentTrainingRoutes");
 const studentProjectRoutes = require("./routes/studentProjectRoutes");
+const studentResearchRoutes = require("./routes/studentResearchRoutes");
+
+
 
 //can also create a separate file for dbConnect and import that here
 mongoose.connect(process.env.MONGO_URI ).then( () => console.log("DB connected successfully")).catch( (error) => console.log(error));
@@ -28,7 +31,7 @@ app.use(
             'Expires',
             'Pragma'
         ],
-        credentials : true
+        credentials : true,
     })
 );
 
@@ -42,6 +45,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/student-info", studentInfoRoutes);
 app.use("/api/Training", studentTrainingRoutes);
 app.use("/api/Projects", studentProjectRoutes);
+app.use("/api/Research", studentResearchRoutes);
 
 
 app.listen(PORT , () => console.log(`Server is running on port ${PORT}`));
