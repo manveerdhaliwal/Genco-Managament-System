@@ -19,6 +19,7 @@ const branchRoutes = require("./routes/branchRoutes");
 const societyRoutes = require("./routes/societyRoutes"); 
 const dutyLeaveRoutes = require("./routes/dutyLeaveRoutes");
 const advisorRoutes = require("./routes/teacherRoutes");
+const certificateRoutes = require("./routes/studentCertificateRoutes");
 
 // Connect MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -62,5 +63,6 @@ app.use("/api/societies", societyRoutes);
 app.use("/api/duty-leave", dutyLeaveRoutes);
 
 app.use("/api/teachers", advisorRoutes);
+app.use("/api/Certificate", certificateRoutes);
 // Start server
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

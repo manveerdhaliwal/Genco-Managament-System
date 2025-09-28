@@ -1,112 +1,156 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
+import axios from "axios";
 
-type CertificateType = "technical" | "cultural" | "sports";
+type CertificateType = "Technical" | "Cultural" | "Sports";
 
-type CertificateData = {
-  eventName: string;
-  eventDate: string;
-};
-
-type SubmittedCertificate = {
+interface CertificateData {
+  _id?: string;
   type: CertificateType;
-  data: CertificateData;
-  file: File;
-  preview: string;
-};
+  eventName: string;
+  date: string;
+  fileUrl?: string; // URL from backend
+}
 
 export default function CertificatePage() {
-
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateType | "">("");
-  const [fileUploads, setFileUploads] = useState<Partial<Record<CertificateType, File | null>>>({
-    technical: null,
-    cultural: null,
-    sports: null,
-  });
-  const [filePreviews, setFilePreviews] = useState<Partial<Record<CertificateType, string | null>>>({
-    technical: null,
-    cultural: null,
-    sports: null,
-  });
-  const [formData, setFormData] = useState<Partial<Record<CertificateType, CertificateData>>>({
-    technical: { eventName: "", eventDate: "" },
-    cultural: { eventName: "", eventDate: "" },
-    sports: { eventName: "", eventDate: "" },
-  });
+  const [formData, setFormData] = useState<Partial<CertificateData>>({});
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [submittedCertificates, setSubmittedCertificates] = useState<CertificateData[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [submittedCertificates, setSubmittedCertificates] = useState<SubmittedCertificate[]>([]);
   const MAX_FILE_SIZE_MB = 5;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: CertificateType) => {
+  // 🔹 Fetch existing certificates
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("http://localhost:5000/api/Certificate/me", {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        });
+
+        if (res.data.success) {
+          setSubmittedCertificates(
+            res.data.data.map((c: any) => ({
+              _id: c._id,
+              type: c.type.toLowerCase(),
+              eventName: c.eventName,
+              date: c.date?.split("T")[0] || "",
+              fileUrl: c.fileUrl,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching certificates:", err);
+      }
+    };
+
+    fetchCertificates();
+  }, []);
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [type]: { ...prev[type], [name]: value },
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleCertificateSelect = (type: CertificateType) => {
     setSelectedCertificate(type);
+    setFormData(prev => ({ ...prev, type }));
     setError("");
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: CertificateType) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
 
-    if (!["application/pdf", "image/png", "image/jpeg"].includes(file.type)) {
+    if (!["application/pdf", "image/png", "image/jpeg"].includes(f.type)) {
       setError("Only PDF or Image files are allowed.");
       return;
     }
-    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    if (f.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
       setError(`File size must be less than ${MAX_FILE_SIZE_MB} MB.`);
       return;
     }
 
     setError("");
-    setFileUploads(prev => ({ ...prev, [type]: file }));
-    setFilePreviews(prev => ({ ...prev, [type]: URL.createObjectURL(file) }));
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!selectedCertificate) {
       setError("Please select a certificate type.");
       return;
     }
-
-    const data = formData[selectedCertificate];
-    if (!data?.eventName || !data?.eventDate) {
-      setError("Please fill in all fields for the selected certificate.");
+    if (!formData?.eventName || !formData?.date) {
+      setError("Please fill in all required fields.");
       return;
     }
 
-    const file = fileUploads[selectedCertificate];
-    const preview = filePreviews[selectedCertificate];
+    const token = localStorage.getItem("token");
+    const formDataToSend = new FormData();
+    formDataToSend.append("type", selectedCertificate);
+    formDataToSend.append("eventName", formData.eventName!);
+    formDataToSend.append("date", formData.date!);
+    if (file) formDataToSend.append("certificateFile", file);
 
-    if (!file || !preview) {
-      setError("Please upload a file for the selected certificate.");
-      return;
+    try {
+      let res;
+      if (editingIndex !== null && submittedCertificates[editingIndex]._id) {
+        // 🔄 Update existing
+        res = await axios.put(
+          `http://localhost:5000/api/Certificate/update/${submittedCertificates[editingIndex]._id}`,
+          formDataToSend,
+          { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+        );
+      } else {
+        // 🆕 New upload
+        res = await axios.post("http://localhost:5000/api/Certificate/save", formDataToSend, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        });
+      }
+
+      if (res.data.success) {
+        const savedCert: CertificateData = {
+          _id: res.data.data._id,
+          type: res.data.data.type.toLowerCase(),
+          eventName: res.data.data.eventName,
+          date: res.data.data.date?.split("T")[0] || "",
+          fileUrl: res.data.data.fileUrl,
+        };
+
+        const updatedList =
+          editingIndex !== null
+            ? submittedCertificates.map((c, i) => (i === editingIndex ? savedCert : c))
+            : [...submittedCertificates, savedCert];
+
+        setSubmittedCertificates(updatedList);
+        setFormData({});
+        setSelectedCertificate("");
+        setFile(null);
+        setPreview(null);
+        setEditingIndex(null);
+        setError("");
+      }
+    } catch (err) {
+      console.error("Error saving certificate:", err);
+      setError("Error saving certificate.");
     }
+  };
 
-    // Add to submittedCertificates
-    setSubmittedCertificates(prev => [
-      ...prev,
-      { type: selectedCertificate, data, file, preview },
-    ]);
-
-    // Reset current form for this type
-    setFormData(prev => ({
-      ...prev,
-      [selectedCertificate]: { eventName: "", eventDate: "" },
-    }));
-    setFileUploads(prev => ({ ...prev, [selectedCertificate]: null }));
-    setFilePreviews(prev => ({ ...prev, [selectedCertificate]: null }));
-    setSelectedCertificate("");
-    setError("");
+  const handleEdit = (index: number) => {
+    const cert = submittedCertificates[index];
+    setFormData(cert);
+    setSelectedCertificate(cert.type);
+    setPreview(cert.fileUrl || null);
+    setEditingIndex(index);
   };
 
   const buttonClass = (type: CertificateType) =>
@@ -116,103 +160,73 @@ export default function CertificatePage() {
         : "border border-gray-300 text-gray-700 hover:bg-gradient-to-r hover:from-purple-400 hover:to-indigo-400 hover:text-white"
     }`;
 
-  const handleEdit = (index: number) => {
-    const cert = submittedCertificates[index];
-    setSelectedCertificate(cert.type);
-    setFormData(prev => ({ ...prev, [cert.type]: cert.data }));
-    setFileUploads(prev => ({ ...prev, [cert.type]: cert.file }));
-    setFilePreviews(prev => ({ ...prev, [cert.type]: cert.preview }));
-    setSubmittedCertificates(prev => prev.filter((_, i) => i !== index));
-  };
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-4 sm:p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
-      <div className="w-full max-w-3xl p-8 sm:p-10 bg-white shadow-2xl rounded-3xl border border-gray-200 mb-6">
+    <div className="min-h-screen flex flex-col items-center justify-start p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
+      <div className="w-full max-w-3xl p-8 sm:p-10 bg-white shadow-2xl rounded-3xl border border-gray-200">
+        {/* Back Button */}
+        <Link
+          href="/dashboard/student"
+          className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </Link>
 
-  {/* Go Back Button */}
-  <Link
-    href="/dashboard/student"
-    className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-    aria-label="Go back"
-  >
-    <svg
-      className="w-6 h-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
-    </svg>
-  </Link>
-  <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">🎓 Certification</h2>
+        <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">🎓 Certificates</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* Certificate Selection */}
+          {/* Certificate Type Selection */}
           <div className="flex flex-col sm:flex-row justify-between gap-3">
-            <button type="button" className={buttonClass("technical")} onClick={() => handleCertificateSelect("technical")}>
+            <button type="button" className={buttonClass("Technical")} onClick={() => handleCertificateSelect("Technical")}>
               Technical
             </button>
-            <button type="button" className={buttonClass("cultural")} onClick={() => handleCertificateSelect("cultural")}>
+            <button type="button" className={buttonClass("Cultural")} onClick={() => handleCertificateSelect("Cultural")}>
               Cultural
             </button>
-            <button type="button" className={buttonClass("sports")} onClick={() => handleCertificateSelect("sports")}>
+            <button type="button" className={buttonClass("Sports")} onClick={() => handleCertificateSelect("Sports")}>
               Sports
             </button>
           </div>
 
-          {/* Certificate Form */}
           {selectedCertificate && (
             <div className="flex flex-col gap-3 mt-3">
               <input
                 type="text"
                 name="eventName"
                 placeholder="Event Name"
-                value={formData[selectedCertificate]?.eventName}
-                onChange={(e) => handleInputChange(e, selectedCertificate)}
-                className="border border-gray-300 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition shadow-sm"
+                value={formData?.eventName || ""}
+                onChange={handleInputChange}
+                className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm"
                 required
               />
               <input
                 type="date"
-                name="eventDate"
-                value={formData[selectedCertificate]?.eventDate}
-                onChange={(e) => handleInputChange(e, selectedCertificate)}
-                className="border border-gray-300 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition shadow-sm"
+                name="date"
+                value={formData?.date || ""}
+                onChange={handleInputChange}
+                className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm"
                 required
               />
-
-              <label className="font-medium text-gray-700 mt-2">
-                Upload Certificate (PDF / Image):
-              </label>
               <input
                 type="file"
                 accept="application/pdf,image/png,image/jpeg"
-                onChange={(e) => handleFileChange(e, selectedCertificate)}
-                className="border border-gray-300 p-3 rounded-2xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 cursor-pointer shadow-sm"
-                required
+                onChange={handleFileChange}
+                className="border border-gray-300 p-3 rounded-2xl"
               />
-              {fileUploads[selectedCertificate] && (
-                <p className="text-gray-700 text-sm mt-1 truncate">
-                  Uploaded File: <span className="font-medium">{fileUploads[selectedCertificate]?.name}</span>
-                </p>
-              )}
-              {filePreviews[selectedCertificate] && (
+              {preview && (
                 <div className="mt-3 border border-gray-200 rounded-2xl overflow-hidden shadow-md">
                   <p className="bg-indigo-600 text-white p-2 text-sm font-medium">Preview</p>
-                  {fileUploads[selectedCertificate]?.type === "application/pdf" ? (
-                    <iframe
-                      src={filePreviews[selectedCertificate]!}
-                      className="w-full h-56 sm:h-72"
-                      title="Certificate Preview"
-                    ></iframe>
+                  {file?.type === "application/pdf" ? (
+                    <iframe src={preview} className="w-full h-56" title="Certificate Preview"></iframe>
                   ) : (
-                    <img
-                      src={filePreviews[selectedCertificate]!}
-                      alt="Certificate Preview"
-                      className="w-full h-56 sm:h-72 object-contain"
-                    />
+                    <img src={preview} alt="Certificate Preview" className="w-full h-56 object-contain" />
                   )}
                 </div>
               )}
@@ -221,38 +235,36 @@ export default function CertificatePage() {
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <button
-            type="submit"
-            className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold hover:from-purple-500 hover:to-indigo-500 shadow-lg transition-all"
-          >
-            Submit
+          <button type="submit" className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold shadow-lg">
+            {editingIndex !== null ? "Update" : "Submit"}
           </button>
         </form>
       </div>
 
-      {/* Display Submitted Certificates */}
+      {/* Submitted Certificates */}
       {submittedCertificates.length > 0 && (
-        <div className="w-full max-w-3xl flex flex-col gap-5">
-          <h3 className="text-2xl font-bold text-indigo-700 mb-4">Submitted Certificates</h3>
-          {submittedCertificates.map((cert, index) => (
-            <div key={index} className="border border-gray-200 p-4 rounded-3xl shadow-md bg-white relative">
-              <button
-                type="button"
-                onClick={() => handleEdit(index)}
-                className="absolute top-3 right-3 text-blue-600 font-bold hover:text-blue-800"
-              >
-                ✎ Edit
-              </button>
-              <p><span className="font-medium">Type:</span> {cert.type.toUpperCase()}</p>
-              <p><span className="font-medium">Event:</span> {cert.data.eventName}</p>
-              <p><span className="font-medium">Date:</span> {cert.data.eventDate}</p>
-              {cert.file.type === "application/pdf" ? (
-                <iframe src={cert.preview} className="w-full h-56 mt-2" title="Certificate Preview"></iframe>
-              ) : (
-                <img src={cert.preview} alt="Certificate" className="w-full h-56 object-contain mt-2" />
-              )}
-            </div>
-          ))}
+        <div className="w-full max-w-3xl mt-8">
+          <h3 className="text-2xl font-semibold mb-4 text-indigo-700">📑 Submitted Certificates</h3>
+          <div className="flex flex-col gap-4">
+            {submittedCertificates.map((cert, index) => (
+              <div key={index} className="p-5 bg-white border rounded-2xl shadow-md flex justify-between items-start">
+                <div>
+                  <p className="font-bold">{cert.eventName}</p>
+                  <p className="text-sm text-gray-600">📅 {cert.date}</p>
+                  {cert.fileUrl && (
+                    cert.fileUrl.endsWith(".pdf") ? (
+                      <iframe src={cert.fileUrl} className="w-full h-40 mt-2"></iframe>
+                    ) : (
+                      <img src={cert.fileUrl} alt="Certificate" className="w-full h-40 object-contain mt-2" />
+                    )
+                  )}
+                </div>
+                <button onClick={() => handleEdit(index)} className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600">
+                  Edit
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
