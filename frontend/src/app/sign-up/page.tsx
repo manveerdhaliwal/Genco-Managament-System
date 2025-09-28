@@ -13,22 +13,18 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
 
-  // 🔹 Fetch branches from backend on mount
+  // Fetch branches for both teacher and student
   useEffect(() => {
     const fetchBranches = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/branches");
         const data = await res.json();
-        if (res.ok) {
-          setBranches(data.branches); // assuming backend returns { branches: [...] }
-        } else {
-          console.error("Failed to fetch branches:", data.message);
-        }
+        if (res.ok) setBranches(data.branches);
+        else console.error("Failed to fetch branches:", data.message);
       } catch (err) {
         console.error("Error fetching branches:", err);
       }
     };
-
     fetchBranches();
   }, []);
 
@@ -48,15 +44,12 @@ export default function SignupPage() {
     try {
       const res = await fetch("http://localhost:5000/api/auth/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // so cookies work
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ role, ...formData }),
       });
 
       const data = await res.json();
-
       if (!res.ok) {
         setError(data.message || "Signup failed");
         return;
@@ -89,9 +82,7 @@ export default function SignupPage() {
         <div className="w-full md:w-1/2 bg-white p-10 flex flex-col justify-center">
           <h1 className="text-3xl font-bold text-black mb-8 text-center">Sign Up</h1>
 
-          {error && (
-            <p className="text-red-500 mb-4 text-center font-medium">{error}</p>
-          )}
+          {error && <p className="text-red-500 mb-4 text-center font-medium">{error}</p>}
 
           <form className="flex flex-col gap-6" onSubmit={handleSignup}>
             {/* Role Selection */}
@@ -152,19 +143,26 @@ export default function SignupPage() {
             {/* Teacher Fields */}
             {role === "teacher" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <input
-                  type="text"
-                  name="empId"
-                  placeholder="Employee ID"
+                {/* Branch Dropdown for Teacher */}
+                <select
+                  name="branch"
                   onChange={handleChange}
                   required
                   className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"
                   style={{ backgroundColor: "#F1F0FF" }}
-                />
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+
                 <input
                   type="text"
-                  name="department"
-                  placeholder="Department"
+                  name="empId"
+                  placeholder="Employee ID"
                   onChange={handleChange}
                   required
                   className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"
@@ -176,7 +174,7 @@ export default function SignupPage() {
             {/* Student Fields */}
             {role === "student" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* ✅ Branch Dropdown */}
+                {/* Branch Dropdown for Student */}
                 <select
                   name="branch"
                   onChange={handleChange}
@@ -253,7 +251,9 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-[#687076]">
             Already have an account?{" "}
-            <a href="/sign-in" className="font-medium underline">Login</a>
+            <a href="/sign-in" className="font-medium underline">
+              Login
+            </a>
           </p>
         </div>
       </div>

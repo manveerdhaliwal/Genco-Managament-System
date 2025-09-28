@@ -57,46 +57,48 @@ export default function StudentInfo() {
   ];
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        // Normally fetch teachers from backend
-        // const tRes = await axios.get("http://localhost:5000/api/teachers", {
-        //   headers: { Authorization: `Bearer ${token}` },
-        // });
-        // if (tRes.data.success) {
-        //   setTeachers(tRes.data.data);
-        // } else {
-        //   setTeachers(defaultTeachers);
-        // }
+      // ✅ Get logged-in student info first
+      const res = await axios.get("http://localhost:5000/api/student-info/me", {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+      console.log("Student info response:", res.data);  // 👈 add this
 
-        // For now, use default test teachers
-        setTeachers(defaultTeachers);
+      if (res.data.success && res.data.data) {
+        const student = res.data.data;
 
-        // fetch student info
-        const res = await axios.get("http://localhost:5000/api/student-info/me", {
-          headers: { Authorization: `Bearer ${token}` },
+        setFormData({
+          ...student,
+          dob: student.dob?.split("T")[0] || "",
+          admissionDate: student.admissionDate?.split("T")[0] || "",
+          passingYear: student.passingYear?.toString() || "",
+          advisor: student.advisor?._id || "",
         });
-        if (res.data.success && res.data.data) {
-          setFormData({
-            ...res.data.data,
-            dob: res.data.data.dob?.split("T")[0] || "",
-            admissionDate: res.data.data.admissionDate?.split("T")[0] || "",
-            passingYear: res.data.data.passingYear?.toString() || "",
-            advisor: res.data.data.advisor?._id || "",
-          });
-          setIsSubmitted(true);
-        }
-      } catch (err) {
-        console.log("No existing info found");
-        setTeachers(defaultTeachers); // fallback
-      } finally {
-        setLoading(false);
+
+        // ✅ Now fetch advisors for this student
+        const tRes = await axios.get(
+          `http://localhost:5000/api/teachers/advisors/${student._id}`,
+          { headers: { Authorization: `Bearer ${token}` } ,
+          withCredentials: true,
+          }
+        );
+
+        setTeachers(tRes.data); // advisors array
+        setIsSubmitted(true);
       }
-    };
-    fetchData();
-  }, []);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, []);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>

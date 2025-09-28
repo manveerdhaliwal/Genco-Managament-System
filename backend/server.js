@@ -8,6 +8,7 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require("./routes/auth");
 const studentInfoRoutes = require("./routes/studentInfo");
+//const studentInfoAdvisorRoutes = require("./routes/advisorRoutes");
 const studentTrainingRoutes = require("./routes/studentTrainingRoutes");
 const studentProjectRoutes = require("./routes/studentProjectRoutes");
 const studentResearchRoutes = require("./routes/studentResearchRoutes");
@@ -17,6 +18,7 @@ const teacherRoutes = require("./routes/TeacherPanelRoutes");
 const branchRoutes = require("./routes/branchRoutes");
 const societyRoutes = require("./routes/societyRoutes"); 
 const dutyLeaveRoutes = require("./routes/dutyLeaveRoutes");
+const advisorRoutes = require("./routes/teacherRoutes");
 
 // Connect MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -51,11 +53,14 @@ app.use("/api/teacher", teacherRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/student-info", studentInfoRoutes);
+//app.use("/api/advisor", studentInfoAdvisorRoutes);
 app.use("/api/Training", studentTrainingRoutes);
 app.use("/api/Projects", studentProjectRoutes);
 app.use("/api/Research", studentResearchRoutes);
 app.use("/api/Placement", studentPlacementRoutes);
 app.use("/api/societies", societyRoutes); 
 app.use("/api/duty-leave", dutyLeaveRoutes);
+
+app.use("/api/teachers", advisorRoutes);
 // Start server
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
