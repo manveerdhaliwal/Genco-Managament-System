@@ -17,7 +17,7 @@ router.get("/me", authMiddleware, checkRole("student"), getMyPlacements);
 router.put("/:id", authMiddleware, checkRole("student"), upload.single("offerLetter"), updatePlacement);
 
 // Teacher/Admin routes
-router.get("/", authMiddleware, checkRole("teacher", "admin"), getAllPlacements);
+router.get("/allPlacements", authMiddleware, checkRole("teacher", "admin"), getAllPlacements);
 router.get("/:studentId", authMiddleware, checkRole("teacher", "admin"), getPlacementByStudent);
 
 module.exports = router;

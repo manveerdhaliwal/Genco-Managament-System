@@ -1,4 +1,6 @@
 const StudentPlacement = require("../models/StudentPlacement");
+const Teacher = require("../models/Teacher");
+const Student = require("../models/Student");
 const { uploadToCloudinary } = require("../config/cloudinary");
 
 // 🔹 Create Placement (with PDF upload)
@@ -90,15 +92,53 @@ const updatePlacement = async (req, res) => {
 };
 
 // 🔹 Teacher/Admin: get all placements
+// 🔹 Teacher/Admin: get all placements (same branch only)
+
+
+
+
 const getAllPlacements = async (req, res) => {
   try {
-    const placements = await StudentPlacement.find().populate("student", "name email role");
+    const teacherId = req.user.id;
+    const teacher = await Teacher.findById(teacherId);
+
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: "Teacher not found" });
+    }
+
+    if (!teacher.branch) {
+      return res.status(400).json({ success: false, message: "Teacher has no branch assigned" });
+    }
+
+    // Find students in same branch
+    const students = await Student.find({ branch: teacher.branch }).select("_id");
+
+    if (!students.length) {
+      return res.status(404).json({ success: false, message: "No students found in your branch" });
+    }
+
+    const studentIds = students.map((s) => s._id);
+
+    const placements = await StudentPlacement.find({ student: { $in: studentIds } })
+      .populate({
+        path: "student",
+        select: "name URN section year branch",
+        populate: { path: "branch", select: "name" },
+      })
+      .sort({ date: -1 });
+
+    if (!placements.length) {
+      return res.status(200).json({ success: false, message: "No placements found for your branch" });
+    }
+
     res.json({ success: true, data: placements });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 // 🔹 Teacher/Admin: get placements of a specific student
 const getPlacementByStudent = async (req, res) => {

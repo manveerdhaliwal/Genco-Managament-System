@@ -2,42 +2,88 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Student = require("../models/Student");
 const Teacher = require("../models/Teacher");
-const dotenv = require('dotenv');
+const StudentBranch = require("../models/StudentBranch");
+const dotenv = require("dotenv");
 
-// 🔹 Signup route
 // 🔹 Signup route
 const signup = async (req, res) => {
   try {
-    const { username, name, email, password, role, branch, year,semester, CRN, URN, Emp_id, department } = req.body;
+    const {
+      username,
+      name,
+      email,
+      password,
+      role,
+      branch,
+      year,
+      semester,
+      CRN,
+      URN,
+      Emp_id,
+    } = req.body;
 
-    if (!role) return res.status(400).json({ success: false, message: "Role is required" });
+    if (!role) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Role is required" });
+    }
 
     // 🔍 Check if email already exists
     const existingStudent = await Student.findOne({ email });
     const existingTeacher = await Teacher.findOne({ email });
 
     if (existingStudent || existingTeacher) {
-      return res.status(400).json({ success: false, message: "Email already exists!" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already exists!" });
     }
 
     // 🔍 Role-based validation
     if (role === "student") {
       if (!branch || !year || !CRN) {
-        return res.status(400).json({ success: false, message: "Branch, Year and CRN are required for students!" });
+        return res.status(400).json({
+          success: false,
+          message: "Branch, Year and CRN are required for students!",
+        });
       }
+
+      // ✅ Validate branch exists
+      const branchDoc = await StudentBranch.findById(branch);
+      if (!branchDoc) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid branch selected" });
+      }
+
       const existingCRN = await Student.findOne({ CRN });
       if (existingCRN) {
-        return res.status(400).json({ success: false, message: "CRN already exists!" });
+        return res
+          .status(400)
+          .json({ success: false, message: "CRN already exists!" });
       }
     }
 
     if (role === "teacher") {
-      if (!Emp_id || !department) {
-        return res.status(400).json({ success: false, message: "Employee ID and Department are required for teachers!" });
+      if (!Emp_id || !branch) {
+        return res.status(400).json({
+          success: false,
+          message: "Employee ID and branch are required for teachers!",
+        });
       }
+
+      // ✅ Validate branch exists
+      const branchDoc = await StudentBranch.findById(branch);
+      if (!branchDoc) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid branch selected" });
+      }
+
       const existingEmp = await Teacher.findOne({ Emp_id });
       if (existingEmp) {
-        return res.status(400).json({ success: false, message: "Employee ID already exists!" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Employee ID already exists!" });
       }
     }
 
@@ -67,21 +113,24 @@ const signup = async (req, res) => {
         password: hashedPassword,
         role,
         Emp_id,
-        department,
+        branch,
       });
     }
 
     await newUser.save();
 
-    res.status(201).json({ success: true, message: "User registered successfully!", user: newUser });
-
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully!",
+      user: newUser,
+    });
   } catch (error) {
     console.error("Signup error:", error);
-    res.status(500).json({ success: false, message: "Server error during signup." });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error during signup." });
   }
 };
-
-
 
 // 🔹 Login route
 const login = async (req, res) => {
@@ -96,7 +145,7 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "User doesn't exist! Please register first"
+        message: "User doesn't exist! Please register first",
       });
     }
 
@@ -104,17 +153,16 @@ const login = async (req, res) => {
     if (user.role !== role) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role for this account!"
+        message: "Invalid role for this account!",
       });
     }
 
     // check password
     const passMatch = await bcrypt.compare(password, user.password);
     if (!passMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid password"
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid password" });
     }
 
     // generate JWT
@@ -135,7 +183,7 @@ const login = async (req, res) => {
     res.json({
       success: true,
       message: "Login successful",
-      token, // optional: if you want to use it in frontend headers
+      token, // optional
       user: {
         id: user._id,
         name: user.name,
@@ -143,13 +191,11 @@ const login = async (req, res) => {
         role: user.role,
       },
     });
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      success: false,
-      message: "Server error"
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error" });
   }
 };
 
@@ -157,20 +203,20 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   res.clearCookie("token").json({
     success: true,
-    message: "Logged out successfully"
+    message: "Logged out successfully",
   });
 };
 
 // 🔹 Auth middleware
 const authMiddleware = async (req, res, next) => {
   // get token from cookie OR authorization header
-  const token = req.cookies.token || req.header("Authorization")?.replace("Bearer ", "");
+  const token =
+    req.cookies.token || req.header("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: "Unauthorized user!"
-    });
+    return res
+      .status(401)
+      .json({ success: false, message: "Unauthorized user!" });
   }
 
   try {
@@ -178,10 +224,9 @@ const authMiddleware = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({
-      success: false,
-      message: "Invalid or expired token!"
-    });
+    res
+      .status(401)
+      .json({ success: false, message: "Invalid or expired token!" });
   }
 };
 

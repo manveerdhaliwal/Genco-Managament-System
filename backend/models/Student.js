@@ -32,6 +32,10 @@ const StudentSchema = new mongoose.Schema(
       type: Number, 
       required: true 
     },
+    section: { 
+      type: String,
+      required: true 
+    },
     CRN: { 
       type: String, 
       required: true, 

@@ -1,49 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface Branch {
+  _id: string;
+  name: string;
+}
 
 export default function SignupPage() {
   const [role, setRole] = useState<"" | "teacher" | "student">("");
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // 🔹 Fetch branches from backend on mount
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/branches");
+        const data = await res.json();
+        if (res.ok) {
+          setBranches(data.branches); // assuming backend returns { branches: [...] }
+        } else {
+          console.error("Failed to fetch branches:", data.message);
+        }
+      } catch (err) {
+        console.error("Error fetching branches:", err);
+      }
+    };
+
+    fetchBranches();
+  }, []);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-const handleSignup = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!role) {
-    setError("Please select a role!");
-    return;
-  }
-
-  try {
-    const res = await fetch("http://localhost:5000/api/auth/signup", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // so cookies work
-      body: JSON.stringify({ role, ...formData }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.message || "Signup failed");
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!role) {
+      setError("Please select a role!");
       return;
     }
 
-    console.log("Signup successful:", data);
-    alert("Signup successful!");
-    setError("");
-  } catch (err) {
-    console.error("Error:", err);
-    setError("Something went wrong");
-  }
-};
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // so cookies work
+        body: JSON.stringify({ role, ...formData }),
+      });
 
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Signup failed");
+        return;
+      }
+
+      console.log("Signup successful:", data);
+      alert("Signup successful!");
+      setError("");
+    } catch (err) {
+      console.error("Error:", err);
+      setError("Something went wrong");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#EDF9FD]">
@@ -150,10 +176,26 @@ const handleSignup = async (e: React.FormEvent) => {
             {/* Student Fields */}
             {role === "student" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* ✅ Branch Dropdown */}
+                <select
+                  name="branch"
+                  onChange={handleChange}
+                  required
+                  className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"
+                  style={{ backgroundColor: "#F1F0FF" }}
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+
                 <input
                   type="text"
-                  name="branch"
-                  placeholder="Branch"
+                  name="year"
+                  placeholder="Year"
                   onChange={handleChange}
                   required
                   className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"
@@ -161,8 +203,8 @@ const handleSignup = async (e: React.FormEvent) => {
                 />
                 <input
                   type="text"
-                  name="year"
-                  placeholder="Year"
+                  name="section"
+                  placeholder="Section"
                   onChange={handleChange}
                   required
                   className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"

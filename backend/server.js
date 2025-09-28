@@ -45,6 +45,13 @@ app.use(express.json());
 const studentRoutes = require("./routes/StudentRoutes");
 app.use("/api/student", studentRoutes);
 
+const teacherRoutes = require("./routes/TeacherPanelRoutes");
+app.use("/api/teacher", teacherRoutes);
+
+const branchRoutes = require("./routes/branchRoutes");
+app.use("/api/branches", branchRoutes);
+
+
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/student-info", studentInfoRoutes);

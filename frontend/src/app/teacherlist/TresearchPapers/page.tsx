@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-type PaperType = "journal" | "conference" | "workshop";
+type PaperType = "Journal" | "Conference" | "Workshop";
 
 interface PaperData {
   _id?: string;
@@ -19,44 +19,67 @@ interface PaperData {
   paperType: PaperType;
 }
 
-// Dummy data; can be replaced with API fetch
-const allPapers: PaperData[] = [
-  {
-    studentName: "Ritika Gupta",
-    urn: "2203542",
-    section: "A",
-    paperTitle: "LST Analysis in Ludhiana",
-    publicationName: "Theoretical Climatology",
-    publicationDate: "2025-04-03",
-    paperLink: "https://example.com/lst-paper",
-    doi: "10.1234/lst2025",
-    facultyName: "Dr. Sharma",
-    paperType: "journal",
-  },
-  {
-    studentName: "John Doe",
-    urn: "2203545",
-    section: "B",
-    paperTitle: "AI Trip Planner App",
-    publicationName: "AI Conference 2025",
-    publicationDate: "2025-06-10",
-    paperLink: "https://example.com/ai-paper",
-    facultyName: "Prof. Verma",
-    paperType: "conference",
-  },
-];
-
 const years = ["Final", "3rd", "2nd"];
 const sections = ["All", "A", "B"];
 
 export default function ResearchPaperPage() {
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState("All");
+  const [papers, setPapers] = useState<PaperData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedPaper, setSelectedPaper] = useState<PaperData | null>(null);
 
-  const filteredPapers = allPapers
+ useEffect(() => {
+  const fetchPapers = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get("http://localhost:5000/api/Research/studentpapers", {
+        withCredentials: true, // if using cookies
+      });
+
+      if (res.data.success) {
+        // Map backend response to frontend-friendly fields
+        const mapped = res.data.data.map((p: any) => ({
+          _id: p._id,
+          studentName: p.student.name,
+          urn: p.student.URN,
+          section: p.student.section,
+          paperTitle: p.paperTitle,
+          publicationName: p.journalName,
+          publicationDate: new Date(p.date).toISOString().split("T")[0],
+          paperLink: p.linkOfPaper,
+          doi: p.doi,
+          facultyName: p.facultyMentor,
+          paperType: p.type,
+        }));
+        setPapers(mapped);
+      } else {
+        setError(res.data.message || "No papers found");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch papers");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchPapers();
+}, []);
+
+  // Filter by year and section
+  const yearMap: Record<string, number> = { "Final": 4, "3rd": 3, "2nd": 2 };
+  const filteredPapers = papers
     .filter((p) => p.section === selectedSection || selectedSection === "All")
+    .filter((p) => {
+      if (!selectedYear) return true;
+      return p.studentName && yearMap[selectedYear] ? true : false; // adjust later if student year available
+    })
     .sort((a, b) => a.urn.localeCompare(b.urn));
+
+  if (loading) return <p className="p-6">Loading papers...</p>;
+  if (error) return <p className="p-6 text-red-500">{error}</p>;
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
@@ -138,13 +161,13 @@ export default function ResearchPaperPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredPapers.map((paper, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
+                  {filteredPapers.map((paper) => (
+                    <tr key={paper._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 text-sm text-gray-800">{paper.urn}</td>
                       <td className="px-6 py-4 text-sm text-gray-800">{paper.studentName}</td>
                       <td className="px-6 py-4 text-sm text-gray-800">{paper.section}</td>
                       <td className="px-6 py-4 text-sm text-gray-800">{paper.paperTitle}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{paper.paperType.toUpperCase()}</td>
+                      <td className="px-6 py-4 text-sm text-gray-800">{paper.paperType}</td>
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => setSelectedPaper(paper)}
