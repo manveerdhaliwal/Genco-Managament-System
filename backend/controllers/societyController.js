@@ -1,16 +1,17 @@
-// controllers/societyController.js
-import Society from "../models/Society.js";
+const Society = require("../models/Society");
 
-export const getSocieties = async (req, res) => {
+// GET all societies (fetch only present values in DB)
+exports.getSocieties = async (req, res) => {
   try {
-    const societies = await Society.find();
+    const societies = await Society.find(); // ✅ only present DB values
     res.status(200).json(societies);
   } catch (error) {
     res.status(500).json({ message: "Error fetching societies", error });
   }
 };
 
-export const addSociety = async (req, res) => {
+// POST new society (optional, future admin use)
+exports.createSociety = async (req, res) => {
   try {
     const { society_name, society_contact_person, society_contact_person_phone_no } = req.body;
     const society = new Society({
@@ -23,4 +24,9 @@ export const addSociety = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Error adding society", error });
   }
+};
+
+module.exports = {
+  getSocieties,
+  createSociety
 };
