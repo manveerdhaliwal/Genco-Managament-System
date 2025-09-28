@@ -15,21 +15,21 @@ type Value = ValuePiece | [ValuePiece, ValuePiece];
 const events = [
     {
         id:1,
-        title: "Lorem ipsum dolor",
+        title: "College Hackathon",
         time: "12:00 PM - 2:00 PM",
-        description: "Lorem ipsum dolor sit amet, consectetur adiscing elit.",
+        description: "Venue: CC Labs",
     },
         {
         id:2,
-        title: "Lorem ipsum dolor",
+        title: "Dance Auditions",
         time: "12:00 PM - 2:00 PM",
-        description: "Lorem ipsum dolor sit amet, consectetur adiscing elit.",
+        description: "Venue: Auditorium",
     },
         {
         id:3,
-        title: "Lorem ipsum dolor",
+        title: "Cultural Talk ",
         time: "12:00 PM - 2:00 PM",
-        description: "Lorem ipsum dolor sit amet, consectetur adiscing elit.",
+        description: "Venue: Mechanical Seminar Hall",
     },
 ]
 const EventCalendar = () => {

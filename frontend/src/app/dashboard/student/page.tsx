@@ -15,8 +15,8 @@ const StudentPage = () => {
       <div className="w-full lg:w-2/3">
         {/* USER CARDS */}
         <div className="flex gap-4 justify-between flex-wrap">
-          <UserCard type="attendance" value="80%" />
-          <UserCard type="upcoming events" value={3} />
+          <UserCard type="Upcoming events" value={0} />
+          <UserCard type="Certificates Achieved" value={3} />
           <UserCard type="active projects" value={2} />
           <UserCard type="duty leaves" value="2 Pending" />
         </div>
