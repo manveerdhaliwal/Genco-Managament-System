@@ -28,7 +28,13 @@ const saveStudentInfo = async (req, res) => {
     await newInfo.save();
     await newInfo.populate("student", "name email role");
 
-    res.status(201).json({ success: true, message: "Info saved!", data: newInfo });
+    // send student._id at top-level for easier frontend use
+    const responseData = {
+      ...newInfo.toObject(),
+      studentId: newInfo.student._id,
+    };
+
+    res.status(201).json({ success: true, message: "Info saved!", data: responseData });
 
   } catch (error) {
     console.error("Error saving student info:", error);
@@ -46,7 +52,13 @@ const getMyInfo = async (req, res) => {
       return res.status(404).json({ success: false, message: "No info found!" });
     }
 
-    res.json({ success: true, data: info });
+    // send student._id at top-level
+    const responseData = {
+      ...info.toObject(),
+      studentId: info.student._id,
+    };
+
+    res.json({ success: true, data: responseData });
 
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
@@ -86,6 +98,5 @@ const getAllStudentInfo = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 module.exports = { saveStudentInfo, getMyInfo, getStudentInfo, getAllStudentInfo };
