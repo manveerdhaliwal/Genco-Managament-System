@@ -161,7 +161,7 @@ export default function SignupPage() {
 
                 <input
                   type="text"
-                  name="empId"
+                  name="Emp_id"
                   placeholder="Employee ID"
                   onChange={handleChange}
                   required
