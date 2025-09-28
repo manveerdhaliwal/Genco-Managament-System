@@ -111,7 +111,7 @@ const menuItems = [
       {
         icon: "/logout.png",
         label: "Logout",
-        href: "/logout",
+        href: "/list/logout",
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
