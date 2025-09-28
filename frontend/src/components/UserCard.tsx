@@ -4,10 +4,11 @@ interface UserCardProps {
   type: string;
   value: string | number;
   year?: string;
-  bgColor?: string; 
+  bgColor?: string;
+  description?: string; // New optional description
 }
 
-const UserCard = ({ type, value, year = "2025/26", bgColor }: UserCardProps) => {
+const UserCard = ({ type, value, year = "2025/26", bgColor, description }: UserCardProps) => {
   return (
     <div
       className={`rounded-2xl p-4 flex-1 min-w-[130px] ${
@@ -20,8 +21,13 @@ const UserCard = ({ type, value, year = "2025/26", bgColor }: UserCardProps) => 
         </span>
         <Image src="/more.png" alt="options" width={20} height={20} />
       </div>
+
       <h1 className="text-2xl font-semibold my-4">{value}</h1>
       <h2 className="capitalize text-sm font-medium text-gray-500">{type}</h2>
+
+      {description && (
+        <p className="mt-2 text-xs text-gray-700">{description}</p>
+      )}
     </div>
   );
 };

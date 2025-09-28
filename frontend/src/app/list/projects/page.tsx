@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type ProjectStatus = "ongoing" | "completed";
 
@@ -15,7 +15,6 @@ type ProjectData = {
 };
 
 export default function ProjectPage() {
-
   const [formData, setFormData] = useState<ProjectData>({
     name: "",
     urn: "",
@@ -29,6 +28,12 @@ export default function ProjectPage() {
   const [submittedProjects, setSubmittedProjects] = useState<ProjectData[]>([]);
   const [error, setError] = useState("");
   const [isFormVisible, setIsFormVisible] = useState(true);
+
+  // Load saved projects from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("projects");
+    if (saved) setSubmittedProjects(JSON.parse(saved));
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -58,7 +63,10 @@ export default function ProjectPage() {
       return;
     }
 
-    setSubmittedProjects((prev) => [...prev, formData]);
+    const updatedProjects = [...submittedProjects, formData];
+    setSubmittedProjects(updatedProjects);
+    localStorage.setItem("projects", JSON.stringify(updatedProjects));
+
     setError("");
     setIsFormVisible(false);
   };
@@ -66,6 +74,10 @@ export default function ProjectPage() {
   const handleEdit = (index: number) => {
     setFormData(submittedProjects[index]);
     setSubmittedProjects((prev) => prev.filter((_, i) => i !== index));
+    localStorage.setItem(
+      "projects",
+      JSON.stringify(submittedProjects.filter((_, i) => i !== index))
+    );
     setIsFormVisible(true);
   };
 
@@ -85,29 +97,29 @@ export default function ProjectPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-start p-4 sm:p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
       <div className="w-full max-w-3xl p-8 sm:p-10 bg-white shadow-2xl rounded-3xl border border-gray-200 mb-6">
-           <Link
-    href="/dashboard/student"
-    className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-    aria-label="Go back"
-  >
-    <svg
-      className="w-6 h-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
-    </svg>
-  </Link>
+        <Link
+          href="/dashboard/student"
+          className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+          aria-label="Go back"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </Link>
+
         <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">
           💡 Project Submission
         </h2>
 
         {isFormVisible && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            {/* Project Status */}
             <div className="flex gap-6 items-center">
               <label className="flex items-center gap-2">
                 <input
@@ -133,7 +145,6 @@ export default function ProjectPage() {
               </label>
             </div>
 
-            {/* Form Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
                 type="text"
@@ -218,7 +229,6 @@ export default function ProjectPage() {
         )}
       </div>
 
-      {/* Display Submitted Projects */}
       {submittedProjects.length > 0 && (
         <div className="w-full max-w-3xl flex flex-col gap-5">
           <h3 className="text-2xl font-bold text-indigo-700 mb-4">Submitted Projects</h3>
@@ -250,4 +260,3 @@ export default function ProjectPage() {
     </div>
   );
 }
-
