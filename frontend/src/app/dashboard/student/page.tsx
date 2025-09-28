@@ -26,25 +26,36 @@ const StudentPage = () => {
           <CarouselContent>
             {/* Slide 1: Student Info */}
             <CarouselItem className="p-4">
-              <div className="bg-blue-100 shadow-md rounded-xl h-80 flex flex-col items-center justify-center gap-4 w-full p-6 border border-gray-200">
-                <p className="text-xl font-bold">Slide 1</p>
-              </div>
-            </CarouselItem>
-           
+  <div className="rounded-xl h-80 flex items-center justify-center w-full overflow-hidden">
+    <img
+      src="/gndec1.jpeg"
+      alt="Slide 1"
+      className="w-full h-full object-cover rounded-xl"
+    />
+  </div>
+</CarouselItem>
 
-            {/* Slide 2 */}
-            <CarouselItem className="p-4">
-              <div className="bg-pink-100 rounded-xl h-80 flex items-center justify-center w-full">
-                <p className="text-xl font-bold">Slide 2</p>
-              </div>
-            </CarouselItem>
+{/* Slide 2 */}
+<CarouselItem className="p-4">
+  <div className="rounded-xl h-80 flex items-center justify-center w-full overflow-hidden">
+    <img
+      src="/gndec2.jpeg"
+      alt="Slide 2"
+      className="w-full h-full object-cover rounded-xl"
+    />
+  </div>
+</CarouselItem>
 
-            {/* Slide 3 */}
-            <CarouselItem className="p-4">
-              <div className="bg-green-100 rounded-xl h-80 flex items-center justify-center w-full">
-                <p className="text-xl font-bold">Slide 3</p>
-              </div>
-            </CarouselItem>
+{/* Slide 3 */}
+<CarouselItem className="p-4">
+  <div className="rounded-xl h-80 flex items-center justify-center w-full overflow-hidden">
+    <img
+      src="/gndec3.jpg"
+      alt="Slide 3"
+      className="w-full h-full object-cover rounded-xl"
+    />
+  </div>
+</CarouselItem>
           </CarouselContent>
 
           {/* Buttons */}

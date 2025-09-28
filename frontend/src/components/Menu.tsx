@@ -106,7 +106,7 @@ const menuItems = [
          {
         icon: "/announcement.png",
         label: "Activities",
-        href: "/dashboard/DutyLeaves",
+        href: "/list/activities",
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
