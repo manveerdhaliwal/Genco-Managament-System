@@ -1,11 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { getSocieties, createSociety } = require("../controllers/societyController");
+const { getSocieties, addSociety } = require("../controllers/societyController");
 
-// GET all societies
 router.get("/", getSocieties);
-
-// POST new society
-router.post("/", createSociety);
+router.post("/", addSociety);
 
 module.exports = router;
