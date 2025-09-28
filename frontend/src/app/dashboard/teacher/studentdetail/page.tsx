@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import React from "react";
 
 const classesData = {
   "cse-final-year": {
@@ -14,15 +15,33 @@ const classesData = {
         address: "123, Sector 15, Ludhiana, Punjab",
         track: "Machine Learning",
         avgCgpa: "9.1",
-        training: "AI Internship at XYZ Ltd.",
-        certifications: "Deep Learning Specialization",
-        projects: "AI Chatbot, Image Recognition",
-        linkedin: "https://linkedin.com/in/ritikagupta",
-        github: "https://github.com/ritikagupta",
         photo: "https://randomuser.me/api/portraits/women/68.jpg",
+        // Training
+        trainingField: "TR101",
+        organisationName: "XYZ Ltd.",
+        organisationDetails: "AI Research Lab",
+        organisationSupervisor: "Dr. A. Kumar",
+        fieldOfWork: "AI & ML",
+        projectsMade: "AI Chatbot, Image Recognition",
+        projectDescription: "Developed chatbot and image recognition projects",
+        trainingDuration: "4 weeks",
+        certificateAwarded: true,
         certificatePdf: "/pdfs/ritika_certificate.pdf",
         internshipPdf: "/pdfs/ritika_internship.pdf",
+        certifications: "Deep Learning Specialization",
+        projects: "AI Chatbot, Image Recognition",
         researchPaperUrl: "https://example.com/researchpaper",
+        linkedin: "https://linkedin.com/in/ritikagupta",
+        github: "https://github.com/ritikagupta",
+        // Single Placement
+        placement: {
+          companyName: "ABC Tech",
+          role: "Software Engineer",
+          package: "12 LPA",
+          companyDescription: "Leading software solutions company",
+          yearOfPlacement: "2025",
+          offerLetterUrl: "/pdfs/ritika_offer.pdf",
+        },
       },
     ],
   },
@@ -98,42 +117,62 @@ export default function StudentDetail() {
               )}
 
               {renderSection(
-                "Training",
-                <>
-                  <p>{student.training}</p>
-                  {student.internshipPdf && (
-                    <p>
-                      <strong>Internship PDF:</strong>{" "}
-                      <a href={student.internshipPdf} target="_blank" className="text-green-600 hover:underline">
-                        View
+                "Training Details",
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Training Field:</span>
+                    <span className="text-gray-700">{student.trainingField}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Organisation Name:</span>
+                    <span className="text-gray-700">{student.organisationName}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Organisation Details:</span>
+                    <span className="text-gray-700">{student.organisationDetails}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Supervisor:</span>
+                    <span className="text-gray-700">{student.organisationSupervisor}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Field of Work:</span>
+                    <span className="text-gray-700">{student.fieldOfWork}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Projects Made:</span>
+                    <span className="text-gray-700">{student.projectsMade}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Project Description:</span>
+                    <span className="text-gray-700">{student.projectDescription}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Training Duration:</span>
+                    <span className="text-gray-700">{student.trainingDuration}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-semibold w-48 text-gray-800">Certificate Awarded:</span>
+                    <span className="text-gray-700">{student.certificateAwarded ? "Yes" : "No"}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    {student.certificatePdf && (
+                      <a href={student.certificatePdf} target="_blank" className="text-yellow-600 hover:underline font-medium">
+                        View Certificate PDF
                       </a>
-                    </p>
-                  )}
-                </>,
+                    )}
+                    {student.internshipPdf && (
+                      <a href={student.internshipPdf} target="_blank" className="text-green-600 hover:underline font-medium">
+                        View Internship PDF
+                      </a>
+                    )}
+                  </div>
+                </div>,
                 "border-green-500"
               )}
 
-              {renderSection(
-                "Certifications",
-                <>
-                  <p>{student.certifications}</p>
-                  {student.certificatePdf && (
-                    <p>
-                      <strong>Certificate PDF:</strong>{" "}
-                      <a href={student.certificatePdf} target="_blank" className="text-yellow-600 hover:underline">
-                        View
-                      </a>
-                    </p>
-                  )}
-                </>,
-                "border-yellow-500"
-              )}
-
-              {renderSection(
-                "Projects",
-                <p>{student.projects}</p>,
-                "border-purple-500"
-              )}
+              {renderSection("Certifications", <p>{student.certifications}</p>, "border-yellow-500")}
+              {renderSection("Projects", <p>{student.projects}</p>, "border-purple-500")}
 
               {student.researchPaperUrl &&
                 renderSection(
@@ -167,6 +206,25 @@ export default function StudentDetail() {
                   </div>,
                   "border-indigo-300"
                 )}
+
+              {/* 🔹 Single Placement Section */}
+              {student.placement &&
+                renderSection(
+                  "Placement",
+                  <div className="p-4 border-l-4 border-indigo-400 rounded-xl bg-indigo-50 shadow-sm space-y-1">
+                    <p><strong>Company:</strong> {student.placement.companyName}</p>
+                    <p><strong>Role:</strong> {student.placement.role}</p>
+                    <p><strong>Package:</strong> {student.placement.package}</p>
+                    <p><strong>Year:</strong> {student.placement.yearOfPlacement}</p>
+                    {student.placement.companyDescription && <p><strong>Description:</strong> {student.placement.companyDescription}</p>}
+                    {student.placement.offerLetterUrl && (
+                      <a href={student.placement.offerLetterUrl} target="_blank" className="text-indigo-600 hover:underline">
+                        View Offer Letter PDF
+                      </a>
+                    )}
+                  </div>,
+                  "border-indigo-400"
+                )}
             </div>
           </div>
         </div>
@@ -174,3 +232,7 @@ export default function StudentDetail() {
     </div>
   );
 }
+
+
+
+

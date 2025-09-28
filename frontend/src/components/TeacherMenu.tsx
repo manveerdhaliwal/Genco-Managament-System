@@ -9,7 +9,7 @@ const menuItems = [
       {
         icon: "/home.png",
         label: "Home",
-        href: "/",
+        href: "/dashboard/teacher",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
@@ -33,7 +33,7 @@ const menuItems = [
       {
         icon: "/profile.png",
         label: "Student Info",
-        href: "/list/StudentInfo",
+        href: "/teacherlist/StudentInfo",
         visible: ["admin", "teacher", "student", "parent"],
       },
 
