@@ -146,6 +146,7 @@ export default function CertificatePage() {
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
     </svg>
   </Link>
+  <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">🎓 Certification</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Certificate Selection */}
