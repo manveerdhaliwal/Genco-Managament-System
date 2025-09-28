@@ -17,6 +17,7 @@ const signup = async (req, res) => {
       branch,
       year,
       semester,
+      section, // <-- Add section here
       CRN,
       URN,
       Emp_id,
@@ -40,10 +41,10 @@ const signup = async (req, res) => {
 
     // 🔍 Role-based validation
     if (role === "student") {
-      if (!branch || !year || !CRN) {
+      if (!branch || !year || !CRN || !section) { // <-- Validate section
         return res.status(400).json({
           success: false,
-          message: "Branch, Year and CRN are required for students!",
+          message: "Branch, Year, Section, and CRN are required for students!",
         });
       }
 
@@ -102,6 +103,7 @@ const signup = async (req, res) => {
         branch,
         year,
         semester,
+        section, // <-- Pass section to the model
         CRN,
         URN,
       });

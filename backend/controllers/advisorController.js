@@ -6,14 +6,15 @@ const getAdvisorsForStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    // Find student with branch populated
     const student = await Student.findById(studentId).populate("branch");
     if (!student) return res.status(404).json({ error: "Student not found" });
 
-    // Find teachers in same branch
-    const advisors = await Teacher.find({ branch: student.branch._id });
+    if (!student.branch) {
+      return res.status(400).json({ error: "Student has no branch assigned" });
+    }
 
-    res.json(advisors);  // <-- returns array of teachers
+    const advisors = await Teacher.find({ branch: student.branch._id }).select("name email _id");
+    res.json({ success: true, data: advisors });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

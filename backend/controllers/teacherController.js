@@ -1,28 +1,29 @@
-// const Student = require("../models/Student");
-// const Teacher = require("../models/Teacher");
-
-// // Get advisors for a student (same branch teachers)
-// const getAdvisorsForStudent = async (req, res) => {
-//   try {
-//     const { studentId } = req.params;
-
-//     // find student with branch
-//     const student = await Student.findById(studentId).populate("branch");
-//     if (!student) return res.status(404).json({ error: "Student not found" });
-
-//     // find teachers in same branch
-//     const advisors = await Teacher.find({ branch: student.branch._id });
-
-//     res.json(advisors);
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// module.exports = { getAdvisorsForStudent };
-
 const Student = require("../models/Student");
 const Teacher = require("../models/Teacher");
+
+// Get advisors for a student (same branch teachers)
+// Get advisors for a student (same branch teachers)
+const getAdvisorsForStudent = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    console.log("StudentId from params:", studentId);
+
+    const student = await Student.findById(studentId).populate("branch");
+    if (!student) return res.status(404).json({ error: "Student not found" });
+
+    console.log("Student found:", student);
+
+    const advisors = await Teacher.find({ branch: student.branch._id }).select("name email _id");
+
+    console.log("Advisors fetched:", advisors);
+
+    res.json({ success: true, data: advisors });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 // 🔹 Get students of same branch as teacher, categorized by year
 const getStudentsByBranch = async (req, res) => {
@@ -39,7 +40,7 @@ const getStudentsByBranch = async (req, res) => {
     }
 
     // Find students in same branch
-    const students = await Student.find({ branch: teacher.branch }).select(
+    const students = await Student.find({ branch: teacher.branch._id }).select(
       "-password -__v"
     );
 
@@ -56,4 +57,4 @@ const getStudentsByBranch = async (req, res) => {
   }
 };
 
-module.exports = { getStudentsByBranch };
+module.exports = { getStudentsByBranch, getAdvisorsForStudent };
