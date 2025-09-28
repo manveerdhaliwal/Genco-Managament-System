@@ -100,7 +100,7 @@ const menuItems = [
             {
         icon: "/calendar.png", 
         label: "Duty Leaves",
-        href: "/dashboard/DutyLeaves",
+        href: "/list/dutyleave",
         visible: ["admin", "teacher", "student", "parent"],
       },
          {
