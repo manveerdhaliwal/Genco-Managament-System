@@ -1,5 +1,4 @@
-// models/Society.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const SocietySchema = new mongoose.Schema(
   {
@@ -11,4 +10,5 @@ const SocietySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export default mongoose.models.Society || mongoose.model("Society", SocietySchema);
+const Society = mongoose.models.Society || mongoose.model("Society", SocietySchema);
+module.exports = Society;
