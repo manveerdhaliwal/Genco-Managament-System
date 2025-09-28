@@ -16,6 +16,7 @@ const studentRoutes = require("./routes/StudentRoutes");
 const teacherRoutes = require("./routes/TeacherPanelRoutes");
 const branchRoutes = require("./routes/branchRoutes");
 const societyRoutes = require("./routes/societyRoutes"); 
+const dutyLeaveRoutes = require("./routes/dutyLeaveRoutes");
 
 // Connect MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -55,6 +56,6 @@ app.use("/api/Projects", studentProjectRoutes);
 app.use("/api/Research", studentResearchRoutes);
 app.use("/api/Placement", studentPlacementRoutes);
 app.use("/api/societies", societyRoutes); 
-
+app.use("/api/duty-leave", dutyLeaveRoutes);
 // Start server
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
