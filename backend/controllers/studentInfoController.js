@@ -3,6 +3,10 @@ const StudentInfo = require("../models/StudentInfo");
 // 🔹 Add/Update Student Info
 const saveStudentInfo = async (req, res) => {
   try {
+    console.log("Student Info Save Called");
+    console.log("Student ID from token:", req.user?.id);
+    console.log("Request Body:", req.body);
+
     const studentId = req.user.id; // from auth middleware
     const info = req.body;   
 
@@ -17,7 +21,7 @@ const saveStudentInfo = async (req, res) => {
         { new: true }
       )
       .populate("student", "name email role")
-      .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
+      .populate("advisor", "name"); // 👈 Added advisor population
 
       return res.json({ success: true, message: "Info updated!", data: existing });
     }
