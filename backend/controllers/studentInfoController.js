@@ -15,7 +15,10 @@ const saveStudentInfo = async (req, res) => {
         { student: studentId },
         { $set: info },
         { new: true }
-      );
+      )
+      .populate("student", "name email role")
+      .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
+
       return res.json({ success: true, message: "Info updated!", data: existing });
     }
 
@@ -27,6 +30,7 @@ const saveStudentInfo = async (req, res) => {
 
     await newInfo.save();
     await newInfo.populate("student", "name email role");
+    await newInfo.populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
     // send student._id at top-level for easier frontend use
     const responseData = {
@@ -46,7 +50,9 @@ const saveStudentInfo = async (req, res) => {
 const getMyInfo = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const info = await StudentInfo.findOne({ student: studentId }).populate("student", "name email role");
+    const info = await StudentInfo.findOne({ student: studentId })
+      .populate("student", "name email role")
+      .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
     if (!info) {
       return res.status(404).json({ success: false, message: "No info found!" });
@@ -61,6 +67,7 @@ const getMyInfo = async (req, res) => {
     res.json({ success: true, data: responseData });
 
   } catch (error) {
+    console.error("Error in getMyInfo:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -70,7 +77,9 @@ const getStudentInfo = async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    const info = await StudentInfo.findOne({ student: studentId }).populate("student", "name email role");
+    const info = await StudentInfo.findOne({ student: studentId })
+      .populate("student", "name email role")
+      .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
     if (!info) {
       return res.status(404).json({ success: false, message: "No info found!" });
@@ -85,7 +94,9 @@ const getStudentInfo = async (req, res) => {
 
 const getAllStudentInfo = async (req, res) => {
   try {
-    const info = await StudentInfo.find().populate("student", "name email role");
+    const info = await StudentInfo.find()
+      .populate("student", "name email role")
+      .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
     if (!info || info.length === 0) {
       return res.status(404).json({ success: false, message: "No student info found!" });
