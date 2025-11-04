@@ -18,9 +18,12 @@ const teacherRoutes = require("./routes/TeacherPanelRoutes");
 const branchRoutes = require("./routes/branchRoutes");
 const societyRoutes = require("./routes/societyRoutes");
 const dutyLeaveRoutes = require("./routes/dutyLeaveRoutes");
-const advisorRoutes = require("./routes/teacherRoutes");
+//1`const advisorRoutes = require("./routes/AdvisorRoutes");
 const certificateRoutes = require("./routes/studentCertificateRoutes");
 const eventRoutes = require("./routes/event");
+
+const studentDetailRoutes = require("./routes/StudentDetailRoutes"); // new combined route
+
 
 // Connect MongoDB
 mongoose
@@ -50,21 +53,28 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 
+
 // Routes
 app.use("/api/student", studentRoutes);
 app.use("/api/teacher", teacherRoutes);
+//app.use("/api/Teachers", teacherRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/student-info", studentInfoRoutes);
-//app.use("/api/advisor", studentInfoAdvisorRoutes);
+
+//app.use("/api/advisor", advisorRoutes);
 app.use("/api/Training", studentTrainingRoutes);
 app.use("/api/Projects", studentProjectRoutes);
 app.use("/api/Research", studentResearchRoutes);
 app.use("/api/Placement", studentPlacementRoutes);
 app.use("/api/societies", societyRoutes);
 app.use("/api/duty-leave", dutyLeaveRoutes);
+//app.use("/api/teachers", require("./routes/AdvisorRoutes1"));
 
-app.use("/api/teachers", advisorRoutes);
+app.use("/api/student", studentDetailRoutes); // teacher fetch full student details
+
+
+//app.use("/api/teachers", advisorRoutes);
 app.use("/api/Certificate", certificateRoutes);
 app.use("/api/events", eventRoutes);
 // Start server

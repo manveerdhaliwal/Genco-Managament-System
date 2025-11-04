@@ -46,7 +46,13 @@ const saveStudentInfo = async (req, res) => {
 const getMyInfo = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const info = await StudentInfo.findOne({ student: studentId }).populate("student", "name email role");
+    const info = await StudentInfo.findOne({ student: studentId })
+  .populate({
+    path: "student",
+    select: "name email role branch",
+    populate: { path: "branch", select: "name" } // ✅ include branch name
+  })
+  .populate("advisor", "name email");
 
     if (!info) {
       return res.status(404).json({ success: false, message: "No info found!" });

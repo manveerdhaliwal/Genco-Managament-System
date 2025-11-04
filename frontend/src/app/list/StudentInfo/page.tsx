@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-
 import axios from "axios";
-
 
 interface StudentFormData {
   fatherName: string;
@@ -28,7 +26,6 @@ interface Teacher {
 }
 
 export default function StudentInfo() {
-
   const [formData, setFormData] = useState<StudentFormData>({
     fatherName: "",
     motherName: "",
@@ -41,64 +38,53 @@ export default function StudentInfo() {
     motherMobile: "",
     admissionDate: "",
     passingYear: "",
-    advisor: "", // default empty
+    advisor: "",
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
 
   const categories = ["General", "OBC", "SC", "ST", "Other"];
 
-  // Default test advisors
-  const defaultTeachers: Teacher[] = [
-    { _id: "1", name: "Test Teacher 1", email: "teacher1@test.com" },
-    { _id: "2", name: "Test Teacher 2", email: "teacher2@test.com" },
+  // Hardcoded advisors
+  const teachers: Teacher[] = [
+    { _id: "68da1575987a7698fda5ec82", name: "Teacher One", email: "teacher1@test.com" },
+    { _id: "68da14fc987a7698fda5ec6d", name: "Teacher Two", email: "teacher2@test.com" },
   ];
 
   useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const token = localStorage.getItem("token");
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-      // ✅ Get logged-in student info first
-      const res = await axios.get("http://localhost:5000/api/student-info/me", {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
-      console.log("Student info response:", res.data);  // 👈 add this
-
-      if (res.data.success && res.data.data) {
-        const student = res.data.data;
-
-        setFormData({
-          ...student,
-          dob: student.dob?.split("T")[0] || "",
-          admissionDate: student.admissionDate?.split("T")[0] || "",
-          passingYear: student.passingYear?.toString() || "",
-          advisor: student.advisor?._id || "",
+        // Get logged-in student info
+        const res = await axios.get("http://localhost:5000/api/student-info/me", {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
         });
 
-        // ✅ Now fetch advisors for this student
-        const tRes = await axios.get(
-          `http://localhost:5000/api/teachers/advisors/${student._id}`,
-          { headers: { Authorization: `Bearer ${token}` } ,
-          withCredentials: true,
-          }
-        );
+        if (res.data.success && res.data.data) {
+          const studentInfo = res.data.data;
 
-        setTeachers(tRes.data); // advisors array
-        setIsSubmitted(true);
+          setFormData({
+            ...studentInfo,
+            dob: studentInfo.dob?.split("T")[0] || "",
+            admissionDate: studentInfo.admissionDate?.split("T")[0] || "",
+            passingYear: studentInfo.passingYear?.toString() || "",
+            advisor: studentInfo.advisor?._id || "",
+          });
+
+          setIsSubmitted(true);
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchData();
-}, []);
+    fetchData();
+  }, []);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -111,16 +97,14 @@ export default function StudentInfo() {
     e.preventDefault();
     try {
       const token = localStorage.getItem("token");
-     const res = await axios.post(
-  "http://localhost:5000/api/student-info/save",
-  formData,
-  {
-    withCredentials: true, // <--- this sends cookies
-    headers: {
-      "Content-Type": "application/json",
-    },
-  }
-);
+      const res = await axios.post(
+        "http://localhost:5000/api/student-info/save",
+        formData,
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
       if (res.data.success) {
         setIsSubmitted(true);
         alert("Info saved successfully!");
@@ -133,34 +117,31 @@ export default function StudentInfo() {
   if (loading) return <p className="text-center mt-10">Loading...</p>;
 
   return (
-    
     <div className="min-h-screen flex justify-center items-start p-6 bg-gray-100">
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-xl p-8 mt-10 border border-gray-200">
-  <Link
-    href="/dashboard/student"
-    className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-    aria-label="Go back"
-  >
-    <svg
-      className="w-6 h-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
-    </svg>
-  </Link>
+        <Link
+          href="/dashboard/student"
+          className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+          aria-label="Go back"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </Link>
+
         <h2 className="text-3xl font-bold text-center mb-8 text-indigo-700">
           🎓 Student Information
         </h2>
 
         {!isSubmitted ? (
-          <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Father's Name */}
             <div>
               <label className="block mb-1 text-gray-700 font-medium">Father&apos;s Name</label>
@@ -357,7 +338,7 @@ export default function StudentInfo() {
               <p><strong>Mother&apos;s Name:</strong> {formData.motherName}</p>
               <p><strong>Date of Birth:</strong> {formData.dob}</p>
               <p><strong>Email:</strong> {formData.email}</p>
-              <p><strong>Permannent address:</strong> {formData.permanentAddress}</p>
+              <p><strong>Permanent Address:</strong> {formData.permanentAddress}</p>
               <p><strong>Category:</strong> {formData.category}</p>
               <p><strong>Student mobile:</strong> {formData.studentMobile}</p>
               <p><strong>Father mobile:</strong> {formData.fatherMobile}</p>
