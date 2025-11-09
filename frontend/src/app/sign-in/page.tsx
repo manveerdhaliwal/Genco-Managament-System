@@ -8,6 +8,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "teacher" | "student">("student");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   // URLs for each role
@@ -17,47 +18,53 @@ export default function LoginPage() {
     student: "/dashboard/student",
   };
 
-  // Dummy credentials (replace with real backend or Firebase)
-  const credentials: Record<
-    "admin" | "teacher" | "student",
-    { email: string; password: string }
-  > = {
-    admin: { email: "admin@test.com", password: "moyemoye123" },
-    teacher: { email: "teacher@test.com", password: "moyemoye123" },
-    student: { email: "student@test.com", password: "moyemoye123" },
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(""); // reset error
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  try {
-    const res = await fetch("http://localhost:5000/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // ✅ include cookies
-      body: JSON.stringify({ email, password, role }),
-    });
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // ✅ include cookies
+        body: JSON.stringify({ email, password, role }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      setError(data.message || "Login failed!");
-      return;
+      if (!res.ok) {
+        setError(data.message || "Login failed!");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Login success:", data);
+
+      // ✅ IMPORTANT: Store the token in localStorage
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        console.log("Token stored in localStorage:", data.token);
+      } else {
+        console.warn("No token received from backend!");
+      }
+
+      // ✅ Store user info
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        console.log("User info stored:", data.user);
+      }
+
+      // ✅ Redirect based on role
+      router.push(roleUrls[role]);
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Something went wrong!");
+      setLoading(false);
     }
-
-    console.log("Login success:", data);
-
-    // ✅ Redirect based on role
-    router.push(roleUrls[role]);
-  } catch (err) {
-    console.error("Login error:", err);
-    setError("Something went wrong!");
-  }
-};
-
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#EDF9FD]">
@@ -69,7 +76,7 @@ export default function LoginPage() {
           style={{ backgroundColor: "#CFCEFF" }}
         >
           <h2 className="text-4xl font-bold text-black mb-6">Welcome Back!</h2>
-          <p className="text-[#687076]  text-lg">
+          <p className="text-[#687076] text-lg">
             Login to access your dashboard. Select your role and enter credentials to continue.
           </p>
         </div>
@@ -120,10 +127,11 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="p-4 rounded-xl font-semibold transition transform hover:scale-105"
+              disabled={loading}
+              className="p-4 rounded-xl font-semibold transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#FAE27C", color: "#000" }}
             >
-              Login
+              {loading ? "Logging in..." : "Login"}
             </button>
           </form>
 

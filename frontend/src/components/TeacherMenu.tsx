@@ -82,7 +82,7 @@ const menuItems = [
             {
         icon: "/calendar.png", 
         label: "Duty Leaves",
-        href: "/dashboard/DutyLeaves",
+        href: "/dashboard/teacher/dutyleaveapproval",
         visible: ["admin", "teacher", "student", "parent"],
       },
          {
@@ -100,6 +100,12 @@ const menuItems = [
         icon: "/profile.png",
         label: "Profile",
         href: "/list/profile",
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: "/calendar.png", 
+        label: "Duty Leaves",
+        href: "/dashboard/teacher/dutyleaveapproval",  // ← CHANGED THIS
         visible: ["admin", "teacher", "student", "parent"],
       },
       {

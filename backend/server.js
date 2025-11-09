@@ -9,6 +9,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/auth");
 const studentInfoRoutes = require("./routes/studentInfo");
 //const studentInfoAdvisorRoutes = require("./routes/advisorRoutes");
+const advisorRoutes = require("./routes/advisorRoutes");
 const studentTrainingRoutes = require("./routes/studentTrainingRoutes");
 const studentProjectRoutes = require("./routes/studentProjectRoutes");
 const studentResearchRoutes = require("./routes/studentResearchRoutes");
@@ -18,7 +19,6 @@ const teacherRoutes = require("./routes/TeacherPanelRoutes");
 const branchRoutes = require("./routes/branchRoutes");
 const societyRoutes = require("./routes/societyRoutes");
 const dutyLeaveRoutes = require("./routes/dutyLeaveRoutes");
-//1`const advisorRoutes = require("./routes/AdvisorRoutes");
 const certificateRoutes = require("./routes/studentCertificateRoutes");
 const eventRoutes = require("./routes/event");
 
@@ -55,6 +55,11 @@ app.use(express.json());
 
 
 // Routes
+
+
+// Then in your routes section:
+
+app.use("/api/advisors", advisorRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/teacher", teacherRoutes);
 //app.use("/api/Teachers", teacherRoutes);
@@ -69,12 +74,8 @@ app.use("/api/Research", studentResearchRoutes);
 app.use("/api/Placement", studentPlacementRoutes);
 app.use("/api/societies", societyRoutes);
 app.use("/api/duty-leave", dutyLeaveRoutes);
-//app.use("/api/teachers", require("./routes/AdvisorRoutes1"));
-
-app.use("/api/student", studentDetailRoutes); // teacher fetch full student details
-
-
-//app.use("/api/teachers", advisorRoutes);
+app.use("/api/advisors", advisorRoutes);
+app.use("/api/teachers", advisorRoutes);
 app.use("/api/Certificate", certificateRoutes);
 app.use("/api/events", eventRoutes);
 // Start server

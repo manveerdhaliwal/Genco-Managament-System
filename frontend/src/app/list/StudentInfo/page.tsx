@@ -16,13 +16,14 @@ interface StudentFormData {
   motherMobile: string;
   admissionDate: string;
   passingYear: string;
-  advisor: string; // NEW FIELD
+  advisor: string;
 }
 
 interface Teacher {
   _id: string;
   name: string;
   email: string;
+  Emp_id?: string;
 }
 
 export default function StudentInfo() {
@@ -43,41 +44,80 @@ export default function StudentInfo() {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [error, setError] = useState("");
 
   const categories = ["General", "OBC", "SC", "ST", "Other"];
-
-  // Hardcoded advisors
-  const teachers: Teacher[] = [
-    { _id: "68da1575987a7698fda5ec82", name: "Teacher One", email: "teacher1@test.com" },
-    { _id: "68da14fc987a7698fda5ec6d", name: "Teacher Two", email: "teacher2@test.com" },
-  ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
 
-        // Get logged-in student info
-        const res = await axios.get("http://localhost:5000/api/student-info/me", {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        });
+        console.log("Token from localStorage:", token); // Debug log
 
-        if (res.data.success && res.data.data) {
-          const studentInfo = res.data.data;
-
-          setFormData({
-            ...studentInfo,
-            dob: studentInfo.dob?.split("T")[0] || "",
-            admissionDate: studentInfo.admissionDate?.split("T")[0] || "",
-            passingYear: studentInfo.passingYear?.toString() || "",
-            advisor: studentInfo.advisor?._id || "",
-          });
-
-          setIsSubmitted(true);
+        if (!token) {
+          setError("No authentication token found. Please log in.");
+          setLoading(false);
+          return;
         }
-      } catch (err) {
+
+        // Fetch advisors from same branch first
+        const advisorsRes = await axios.get(
+          "http://localhost:5000/api/advisors/my-advisors",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          }
+        );
+
+        console.log("Advisors response:", advisorsRes.data);
+
+        if (advisorsRes.data.success) {
+          setTeachers(advisorsRes.data.data);
+        }
+
+        // Try to fetch existing student info
+        try {
+          const studentInfoRes = await axios.get(
+            "http://localhost:5000/api/student-info/me",
+            {
+              headers: { Authorization: `Bearer ${token}` },
+              withCredentials: true,
+            }
+          );
+
+          console.log("Student info response:", studentInfoRes.data);
+
+          if (studentInfoRes.data.success && studentInfoRes.data.data) {
+            const info = studentInfoRes.data.data;
+
+            setFormData({
+              fatherName: info.fatherName || "",
+              motherName: info.motherName || "",
+              permanentAddress: info.permanentAddress || "",
+              email: info.email || "",
+              category: info.category || "",
+              dob: info.dob?.split("T")[0] || "",
+              studentMobile: info.studentMobile || "",
+              fatherMobile: info.fatherMobile || "",
+              motherMobile: info.motherMobile || "",
+              admissionDate: info.admissionDate?.split("T")[0] || "",
+              passingYear: info.passingYear?.toString() || "",
+              advisor: info.advisor?._id || "",
+            });
+
+            setIsSubmitted(true);
+          }
+        } catch (infoErr: any) {
+          // If 404, student hasn't filled info yet - that's okay
+          if (infoErr.response?.status !== 404) {
+            console.error("Error fetching student info:", infoErr);
+          }
+        }
+      } catch (err: any) {
         console.error("Error fetching data:", err);
+        setError(err.response?.data?.message || "Failed to fetch advisors");
       } finally {
         setLoading(false);
       }
@@ -95,26 +135,53 @@ export default function StudentInfo() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     try {
       const token = localStorage.getItem("token");
+
       const res = await axios.post(
         "http://localhost:5000/api/student-info/save",
         formData,
         {
           withCredentials: true,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
+
       if (res.data.success) {
         setIsSubmitted(true);
         alert("Info saved successfully!");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving student info:", err);
+      alert(err.response?.data?.message || "Failed to save information");
     }
   };
 
-  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-red-50 border-2 border-red-200 rounded-2xl p-6">
+          <h3 className="text-xl font-semibold text-red-700 mb-2">⚠️ Error</h3>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex justify-center items-start p-6 bg-gray-100">
@@ -144,7 +211,9 @@ export default function StudentInfo() {
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Father's Name */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Father&apos;s Name</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Father&apos;s Name
+              </label>
               <input
                 type="text"
                 name="fatherName"
@@ -157,7 +226,9 @@ export default function StudentInfo() {
 
             {/* Mother's Name */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Mother&apos;s Name</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Mother&apos;s Name
+              </label>
               <input
                 type="text"
                 name="motherName"
@@ -183,7 +254,9 @@ export default function StudentInfo() {
 
             {/* Permanent Address */}
             <div className="md:col-span-3">
-              <label className="block mb-1 text-gray-700 font-medium">Permanent Address</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Permanent Address
+              </label>
               <textarea
                 name="permanentAddress"
                 value={formData.permanentAddress}
@@ -215,7 +288,9 @@ export default function StudentInfo() {
 
             {/* Date of Birth */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Date of Birth</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Date of Birth
+              </label>
               <input
                 type="date"
                 name="dob"
@@ -226,9 +301,11 @@ export default function StudentInfo() {
               />
             </div>
 
-            {/* Advisor */}
+            {/* Advisor - UPDATED */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Advisor</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Advisor (Same Branch)
+              </label>
               <select
                 name="advisor"
                 value={formData.advisor}
@@ -237,17 +314,30 @@ export default function StudentInfo() {
                 className="w-full border border-gray-300 rounded-lg p-2 bg-gray-50"
               >
                 <option value="">Select Advisor</option>
-                {teachers.map((teacher) => (
-                  <option key={teacher._id} value={teacher._id}>
-                    {teacher.name} ({teacher.email})
+                {teachers.length > 0 ? (
+                  teachers.map((teacher) => (
+                    <option key={teacher._id} value={teacher._id}>
+                      {teacher.name} - {teacher.email}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    No advisors available
                   </option>
-                ))}
+                )}
               </select>
+              {teachers.length === 0 && (
+                <p className="text-sm text-red-500 mt-1">
+                  No teachers found in your branch
+                </p>
+              )}
             </div>
 
             {/* Student Mobile */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Student Mobile</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Student Mobile
+              </label>
               <input
                 type="tel"
                 name="studentMobile"
@@ -262,7 +352,9 @@ export default function StudentInfo() {
 
             {/* Father Mobile */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Father Mobile</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Father Mobile
+              </label>
               <input
                 type="tel"
                 name="fatherMobile"
@@ -277,7 +369,9 @@ export default function StudentInfo() {
 
             {/* Mother Mobile */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Mother Mobile</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Mother Mobile
+              </label>
               <input
                 type="tel"
                 name="motherMobile"
@@ -292,7 +386,9 @@ export default function StudentInfo() {
 
             {/* Admission Date */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Admission Date</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Admission Date
+              </label>
               <input
                 type="date"
                 name="admissionDate"
@@ -305,7 +401,9 @@ export default function StudentInfo() {
 
             {/* Passing Year */}
             <div>
-              <label className="block mb-1 text-gray-700 font-medium">Passing Year</label>
+              <label className="block mb-1 text-gray-700 font-medium">
+                Passing Year
+              </label>
               <input
                 type="number"
                 name="passingYear"
@@ -334,20 +432,49 @@ export default function StudentInfo() {
               <h3 className="text-xl font-semibold text-indigo-700 mb-3">
                 👨‍👩‍👧 Personal Info
               </h3>
-              <p><strong>Father&apos;s Name:</strong> {formData.fatherName}</p>
-              <p><strong>Mother&apos;s Name:</strong> {formData.motherName}</p>
-              <p><strong>Date of Birth:</strong> {formData.dob}</p>
-              <p><strong>Email:</strong> {formData.email}</p>
-              <p><strong>Permanent Address:</strong> {formData.permanentAddress}</p>
-              <p><strong>Category:</strong> {formData.category}</p>
-              <p><strong>Student mobile:</strong> {formData.studentMobile}</p>
-              <p><strong>Father mobile:</strong> {formData.fatherMobile}</p>
-              <p><strong>Mother mobile:</strong> {formData.motherMobile}</p>
-              <p><strong>Admission date:</strong> {formData.admissionDate}</p>
-              <p><strong>Passing year:</strong> {formData.passingYear}</p>
-              <p><strong>Advisor:</strong> 
-                {teachers.find((t) => t._id === formData.advisor)?.name || "N/A"}
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p>
+                  <strong>Father&apos;s Name:</strong> {formData.fatherName}
+                </p>
+                <p>
+                  <strong>Mother&apos;s Name:</strong> {formData.motherName}
+                </p>
+                <p>
+                  <strong>Date of Birth:</strong> {formData.dob}
+                </p>
+                <p>
+                  <strong>Email:</strong> {formData.email}
+                </p>
+                <p>
+                  <strong>Category:</strong> {formData.category}
+                </p>
+                <p>
+                  <strong>Student Mobile:</strong> {formData.studentMobile}
+                </p>
+                <p>
+                  <strong>Father Mobile:</strong> {formData.fatherMobile}
+                </p>
+                <p>
+                  <strong>Mother Mobile:</strong> {formData.motherMobile}
+                </p>
+                <p>
+                  <strong>Admission Date:</strong> {formData.admissionDate}
+                </p>
+                <p>
+                  <strong>Passing Year:</strong> {formData.passingYear}
+                </p>
+              </div>
+              <div className="mt-3">
+                <p>
+                  <strong>Permanent Address:</strong> {formData.permanentAddress}
+                </p>
+              </div>
+              <div className="mt-4 p-4 bg-white rounded-lg border-2 border-indigo-200">
+                <p className="text-lg">
+                  <strong>📚 Academic Advisor:</strong>{" "}
+                  {teachers.find((t) => t._id === formData.advisor)?.name || "N/A"}
+                </p>
+              </div>
             </div>
 
             <div className="flex justify-center">
