@@ -22,6 +22,9 @@ const dutyLeaveRoutes = require("./routes/dutyLeaveRoutes");
 const certificateRoutes = require("./routes/studentCertificateRoutes");
 const eventRoutes = require("./routes/event");
 
+const studentDetailRoutes = require("./routes/StudentDetailRoutes"); // new combined route
+
+
 // Connect MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
@@ -50,6 +53,7 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 
+
 // Routes
 
 
@@ -58,10 +62,12 @@ app.use(express.json());
 app.use("/api/advisors", advisorRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/teacher", teacherRoutes);
+//app.use("/api/Teachers", teacherRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/student-info", studentInfoRoutes);
-//app.use("/api/advisor", studentInfoAdvisorRoutes);
+
+//app.use("/api/advisor", advisorRoutes);
 app.use("/api/Training", studentTrainingRoutes);
 app.use("/api/Projects", studentProjectRoutes);
 app.use("/api/Research", studentResearchRoutes);

@@ -208,10 +208,7 @@ export default function StudentInfo() {
         </h2>
 
         {!isSubmitted ? (
-          <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Father's Name */}
             <div>
               <label className="block mb-1 text-gray-700 font-medium">
