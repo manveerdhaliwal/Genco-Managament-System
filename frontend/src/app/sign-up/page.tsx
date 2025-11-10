@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; // 👈 added
 
 interface Branch {
   _id: string;
@@ -12,6 +13,7 @@ export default function SignupPage() {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [showPassword, setShowPassword] = useState(false); // 👈 added
 
   // Fetch branches for both teacher and student
   useEffect(() => {
@@ -72,7 +74,9 @@ export default function SignupPage() {
           className="hidden md:flex flex-col justify-center p-12 w-1/2"
           style={{ backgroundColor: "#CFCEFF" }}
         >
-          <h2 className="text-4xl font-bold text-black mb-6">Create Your Account</h2>
+          <h2 className="text-4xl font-bold text-black mb-6">
+            Create Your Account
+          </h2>
           <p className="text-[#687076] text-lg">
             Choose your role and fill in the details to get started.
           </p>
@@ -80,9 +84,13 @@ export default function SignupPage() {
 
         {/* Right sign-up form */}
         <div className="w-full md:w-1/2 bg-white p-10 flex flex-col justify-center">
-          <h1 className="text-3xl font-bold text-black mb-8 text-center">Sign Up</h1>
+          <h1 className="text-3xl font-bold text-black mb-8 text-center">
+            Sign Up
+          </h1>
 
-          {error && <p className="text-red-500 mb-4 text-center font-medium">{error}</p>}
+          {error && (
+            <p className="text-red-500 mb-4 text-center font-medium">{error}</p>
+          )}
 
           <form className="flex flex-col gap-6" onSubmit={handleSignup}>
             {/* Role Selection */}
@@ -128,22 +136,33 @@ export default function SignupPage() {
                   className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"
                   style={{ backgroundColor: "#F1F0FF" }}
                 />
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  onChange={handleChange}
-                  required
-                  className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"
-                  style={{ backgroundColor: "#F1F0FF" }}
-                />
+
+                {/* 👇 Password with show/hide feature */}
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Password"
+                    onChange={handleChange}
+                    required
+                    className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF] w-full pr-12"
+                    style={{ backgroundColor: "#F1F0FF" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-black"
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                {/* 👆 End password */}
               </div>
             )}
 
             {/* Teacher Fields */}
             {role === "teacher" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Branch Dropdown for Teacher */}
                 <select
                   name="branch"
                   onChange={handleChange}
@@ -174,7 +193,6 @@ export default function SignupPage() {
             {/* Student Fields */}
             {role === "student" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Branch Dropdown for Student */}
                 <select
                   name="branch"
                   onChange={handleChange}
