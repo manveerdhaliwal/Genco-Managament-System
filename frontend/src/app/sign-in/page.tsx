@@ -41,27 +41,44 @@ export default function LoginPage() {
         return;
       }
 
-      console.log("Login success:", data);
+      console.log("✅ Login success:", data);
 
-      // ✅ IMPORTANT: Store the token in localStorage
+      // ✅ 1. Store token if received
       if (data.token) {
         localStorage.setItem("token", data.token);
         console.log("Token stored in localStorage:", data.token);
       } else {
-        console.warn("No token received from backend!");
+        console.warn("⚠️ No token received from backend!");
       }
 
-      // ✅ Store user info
+      // ✅ 2. Store user info safely
       if (data.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
+
+        // 🧠 Handle both `_id` and `id`
+        const userId = data.user._id || data.user.id;
+        if (userId) {
+          localStorage.setItem("userId", userId);
+          console.log("User ID stored:", userId);
+        } else {
+          console.warn("⚠️ No user ID (_id or id) found in user object!");
+        }
+
+        // 🧠 Store other user details for convenience
+        if (data.user.role) localStorage.setItem("userRole", data.user.role);
+        if (data.user.name) localStorage.setItem("userName", data.user.name);
+
         console.log("User info stored:", data.user);
+      } else {
+        console.warn("⚠️ No user object found in login response!");
       }
 
-      // ✅ Redirect based on role
+      // ✅ 3. Redirect based on role
       router.push(roleUrls[role]);
     } catch (err) {
-      console.error("Login error:", err);
-      setError("Something went wrong!");
+      console.error("❌ Login error:", err);
+      setError("Something went wrong! Please try again.");
+    } finally {
       setLoading(false);
     }
   };
