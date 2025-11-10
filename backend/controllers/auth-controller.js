@@ -232,4 +232,33 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-module.exports = { signup, login, logout, authMiddleware };
+// ✅ Get Logged-in User Details
+const getMe = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    let user;
+
+    if (userRole === "student") {
+      user = await Student.findById(userId).select("-password");
+    } else if (userRole === "teacher") {
+      user = await Teacher.findById(userId).select("-password");
+    }
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      user,
+    });
+  } catch (err) {
+    console.error("GetMe error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+module.exports = { signup, login, logout, authMiddleware, getMe };

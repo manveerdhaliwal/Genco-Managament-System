@@ -14,7 +14,10 @@ const ProfileSection = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get("/api/student/me", { withCredentials: true });
+        const res = await axios.get("http://localhost:5000/api/student/me", {
+  withCredentials: true,
+});
+
         if (res.data.success) {
           setProfileData(res.data.student);
         } else {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [role, setRole] = useState<"admin" | "teacher" | "student">("student");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // 👈 Added
   const router = useRouter();
 
   // URLs for each role
@@ -43,7 +45,7 @@ export default function LoginPage() {
 
       console.log("✅ Login success:", data);
 
-      // ✅ 1. Store token if received
+      // ✅ Store token
       if (data.token) {
         localStorage.setItem("token", data.token);
         console.log("Token stored in localStorage:", data.token);
@@ -94,7 +96,8 @@ export default function LoginPage() {
         >
           <h2 className="text-4xl font-bold text-black mb-6">Welcome Back!</h2>
           <p className="text-[#687076] text-lg">
-            Login to access your dashboard. Select your role and enter credentials to continue.
+            Login to access your dashboard. Select your role and enter
+            credentials to continue.
           </p>
         </div>
 
@@ -119,15 +122,26 @@ export default function LoginPage() {
               style={{ backgroundColor: "#F1F0FF" }}
             />
 
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF] transition"
-              style={{ backgroundColor: "#F1F0FF" }}
-            />
+            {/* 👇 Password Field with Show/Hide */}
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF] transition w-full pr-12"
+                style={{ backgroundColor: "#F1F0FF" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-black"
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+            {/* 👆 End Password Field */}
 
             <select
               value={role}

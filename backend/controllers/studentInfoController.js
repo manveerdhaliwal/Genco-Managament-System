@@ -8,7 +8,7 @@ const saveStudentInfo = async (req, res) => {
     console.log("Request Body:", req.body);
 
     const studentId = req.user.id; // from auth middleware
-    const info = req.body;   
+    const info = req.body;
 
     // check if info already exists
     let existing = await StudentInfo.findOne({ student: studentId });
@@ -20,10 +20,16 @@ const saveStudentInfo = async (req, res) => {
         { $set: info },
         { new: true }
       )
-      .populate("student", "name email role")
-      .populate("advisor", "name"); // 👈 Added advisor population
+        
+        .populate("student", "name email role URN section")
 
-      return res.json({ success: true, message: "Info updated!", data: existing });
+        .populate("advisor", "name"); // 👈 Added advisor population
+
+      return res.json({
+        success: true,
+        message: "Info updated!",
+        data: existing,
+      });
     }
 
     // create new record
@@ -33,7 +39,8 @@ const saveStudentInfo = async (req, res) => {
     });
 
     await newInfo.save();
-    await newInfo.populate("student", "name email role");
+    await newInfo.populate("student", "name email role URN section")
+
     await newInfo.populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
     // send student._id at top-level for easier frontend use
@@ -42,8 +49,9 @@ const saveStudentInfo = async (req, res) => {
       studentId: newInfo.student._id,
     };
 
-    res.status(201).json({ success: true, message: "Info saved!", data: responseData });
-
+    res
+      .status(201)
+      .json({ success: true, message: "Info saved!", data: responseData });
   } catch (error) {
     console.error("Error saving student info:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -55,11 +63,14 @@ const getMyInfo = async (req, res) => {
   try {
     const studentId = req.user.id;
     const info = await StudentInfo.findOne({ student: studentId })
-      .populate("student", "name email role")
+     .populate("student", "name email role URN section")
+
       .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
     if (!info) {
-      return res.status(404).json({ success: false, message: "No info found!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "No info found!" });
     }
 
     // send student._id at top-level
@@ -69,7 +80,6 @@ const getMyInfo = async (req, res) => {
     };
 
     res.json({ success: true, data: responseData });
-
   } catch (error) {
     console.error("Error in getMyInfo:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -82,15 +92,17 @@ const getStudentInfo = async (req, res) => {
     const { studentId } = req.params;
 
     const info = await StudentInfo.findOne({ student: studentId })
-      .populate("student", "name email role")
+      .populate("student", "name email role URN section")
+
       .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
     if (!info) {
-      return res.status(404).json({ success: false, message: "No info found!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "No info found!" });
     }
 
     res.json({ success: true, data: info });
-
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
   }
@@ -99,19 +111,26 @@ const getStudentInfo = async (req, res) => {
 const getAllStudentInfo = async (req, res) => {
   try {
     const info = await StudentInfo.find()
-      .populate("student", "name email role")
+      .populate("student", "name email role URN section")
+
       .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
     if (!info || info.length === 0) {
-      return res.status(404).json({ success: false, message: "No student info found!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "No student info found!" });
     }
 
     res.json({ success: true, data: info });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-module.exports = { saveStudentInfo, getMyInfo, getStudentInfo, getAllStudentInfo };
+module.exports = {
+  saveStudentInfo,
+  getMyInfo,
+  getStudentInfo,
+  getAllStudentInfo,
+};

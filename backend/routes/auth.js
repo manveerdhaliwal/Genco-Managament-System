@@ -1,6 +1,6 @@
 const express = require("express");
 const {
-  signup , login , logout , authMiddleware,
+  signup , login , logout , authMiddleware,getMe
 } = require("../controllers/auth-controller")
 
 const router = express.Router();
@@ -21,5 +21,7 @@ router.post("/check-auth",authMiddleware , (req,res) =>{
   })
   
 });
+
+router.get("/me", authMiddleware, getMe);
 
 module.exports = router;
