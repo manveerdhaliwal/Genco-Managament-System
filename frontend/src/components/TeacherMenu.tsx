@@ -33,7 +33,7 @@ const menuItems = [
       {
         icon: "/profile.png",
         label: "Student Info",
-        href: "/teacherlist/StudentInfo",
+        href: "/teacherlist/TeacherInfo",
         visible: ["admin", "teacher", "student", "parent"],
       },
 
