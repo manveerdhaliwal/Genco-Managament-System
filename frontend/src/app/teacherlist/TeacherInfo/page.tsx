@@ -245,7 +245,6 @@
 
 
 
-
 "use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -291,23 +290,24 @@ export default function TeacherStudentInfoPage() {
 
         if (res.data.success) {
           const mapped = res.data.data.map((s: any) => ({
-            _id: s._id,
-            name: s.student?.name || "N/A",
-            urn: s.urn || "N/A",
-            section: s.section || "N/A",
-            fatherName: s.fatherName || "N/A",
-            motherName: s.motherName || "N/A",
-            permanentAddress: s.permanentAddress || "N/A",
-            email: s.student?.email || "N/A",
-            category: s.category || "N/A",
-            dob: s.dob ? new Date(s.dob).toISOString().split("T")[0] : "N/A",
-            studentMobile: s.studentMobile || "N/A",
-            fatherMobile: s.fatherMobile || "N/A",
-            motherMobile: s.motherMobile || "N/A",
-            admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().split("T")[0] : "N/A",
-            passingYear: s.passingYear || "N/A",
-            advisorName: s.advisor?.name || "N/A",
-          }));
+  _id: s._id,
+  name: s.student?.name || "N/A",
+  urn: s.student?.URN || "N/A",       // ✅ FIXED
+  section: s.student?.section || "N/A", // ✅ FIXED
+  fatherName: s.fatherName || "N/A",
+  motherName: s.motherName || "N/A",
+  permanentAddress: s.permanentAddress || "N/A",
+  email: s.student?.email || "N/A",
+  category: s.category || "N/A",
+  dob: s.dob ? new Date(s.dob).toISOString().split("T")[0] : "N/A",
+  studentMobile: s.studentMobile || "N/A",
+  fatherMobile: s.fatherMobile || "N/A",
+  motherMobile: s.motherMobile || "N/A",
+  admissionDate: s.admissionDate ? new Date(s.admissionDate).toISOString().split("T")[0] : "N/A",
+  passingYear: s.passingYear || "N/A",
+  advisorName: s.advisor?.name || "N/A",
+}));
+
           setStudents(mapped);
         } else {
           setError(res.data.message || "No student info found");
