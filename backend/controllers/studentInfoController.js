@@ -128,9 +128,37 @@ const getAllStudentInfo = async (req, res) => {
   }
 };
 
+// 🔹 Teacher/Admin: Get student info by URN
+const getStudentInfoByURN = async (req, res) => {
+  try {
+    const { urn } = req.query; // get URN from query string
+    if (!urn) return res.status(400).json({ success: false, message: "URN is required" });
+
+    const info = await StudentInfo.findOne()
+      .populate("student", "name email role URN section year")
+      .populate("advisor", "name email _id Emp_id");
+
+    if (!info) {
+      return res.status(404).json({ success: false, message: "No info found!" });
+    }
+
+    // Check if student matches URN
+    if (info.student.URN !== urn) {
+      return res.status(404).json({ success: false, message: "Student not found with this URN" });
+    }
+
+    res.json({ success: true, data: info });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
 module.exports = {
   saveStudentInfo,
   getMyInfo,
   getStudentInfo,
   getAllStudentInfo,
+  getStudentInfoByURN,
 };

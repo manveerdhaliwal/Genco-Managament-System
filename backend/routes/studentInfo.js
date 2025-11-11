@@ -1,5 +1,5 @@
 const express = require("express");
-const { saveStudentInfo, getMyInfo, getStudentInfo ,getAllStudentInfo } = require("../controllers/studentInfoController");
+const { saveStudentInfo, getMyInfo, getStudentInfo ,getAllStudentInfo, getStudentInfoByURN } = require("../controllers/studentInfoController");
 const { authMiddleware } = require("../controllers/auth-controller");
 const checkRole = require("../middlewares/roleMiddleware");
 
@@ -17,5 +17,7 @@ router.get("/:studentId", authMiddleware, checkRole("teacher", "admin"), getStud
 // teacher/admin fetch all students info 
 router.get("/", authMiddleware, checkRole("teacher", "admin"), getAllStudentInfo);
 
+// Teacher/Admin fetch student by URN
+router.get("/byURN", authMiddleware, checkRole("teacher", "admin"), getStudentInfoByURN);
 
 module.exports = router;
