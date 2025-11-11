@@ -21,7 +21,7 @@ const saveStudentInfo = async (req, res) => {
         { new: true }
       )
         
-        .populate("student", "name email role URN section")
+        .populate("student", "name email role URN section year")
 
         .populate("advisor", "name"); // 👈 Added advisor population
 
@@ -39,7 +39,7 @@ const saveStudentInfo = async (req, res) => {
     });
 
     await newInfo.save();
-    await newInfo.populate("student", "name email role URN section")
+    await newInfo.populate("student", "name email role URN section year")
 
     await newInfo.populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
@@ -63,7 +63,7 @@ const getMyInfo = async (req, res) => {
   try {
     const studentId = req.user.id;
     const info = await StudentInfo.findOne({ student: studentId })
-     .populate("student", "name email role URN section")
+     .populate("student", "name email role URN section year")
 
       .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
@@ -92,7 +92,7 @@ const getStudentInfo = async (req, res) => {
     const { studentId } = req.params;
 
     const info = await StudentInfo.findOne({ student: studentId })
-      .populate("student", "name email role URN section")
+      .populate("student", "name email role URN section year")
 
       .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 
@@ -111,7 +111,7 @@ const getStudentInfo = async (req, res) => {
 const getAllStudentInfo = async (req, res) => {
   try {
     const info = await StudentInfo.find()
-      .populate("student", "name email role URN section")
+      .populate("student", "name email role URN section year")
 
       .populate("advisor", "name email _id Emp_id"); // 👈 Added advisor population
 

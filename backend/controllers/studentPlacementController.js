@@ -48,7 +48,7 @@ const createPlacement = async (req, res) => {
     });
 
     await newPlacement.save();
-    await newPlacement.populate("student", "name email role");
+    await newPlacement.populate("student", "name email role URN section year ");
 
     res.status(201).json({ success: true, message: "Placement saved!", data: newPlacement });
   } catch (error) {
@@ -61,7 +61,7 @@ const createPlacement = async (req, res) => {
 const getMyPlacements = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const placements = await StudentPlacement.find({ student: studentId }).populate("student", "name email role");
+    const placements = await StudentPlacement.find({ student: studentId }).populate("student", "name email role URN section year");
     res.json({ success: true, data: placements });
   } catch (error) {
     console.error(error);
@@ -80,7 +80,7 @@ const updatePlacement = async (req, res) => {
       updates.offerLetterUrl = result.secure_url;
     }
 
-    const updated = await StudentPlacement.findByIdAndUpdate(id, updates, { new: true }).populate("student", "name email role");
+    const updated = await StudentPlacement.findByIdAndUpdate(id, updates, { new: true }).populate("student", "name email role URN section year");
 
     if (!updated) return res.status(404).json({ success: false, message: "Placement not found" });
 
@@ -144,7 +144,7 @@ const getAllPlacements = async (req, res) => {
 const getPlacementByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const placements = await StudentPlacement.find({ student: studentId }).populate("student", "name email role");
+    const placements = await StudentPlacement.find({ student: studentId }).populate("student", "name email role URN section year");
     res.json({ success: true, data: placements });
   } catch (error) {
     console.error(error);

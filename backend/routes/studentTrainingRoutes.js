@@ -17,7 +17,7 @@ router.get("/me", authMiddleware, checkRole("student"), getMyTraining);
 router.put("/:id", authMiddleware, checkRole("student"), upload.single("certificatepdf"), updateTraining);
 
 // Teacher/Admin routes
-router.get("/", authMiddleware, checkRole("teacher", "admin"), getAllTraining);
+router.get("/all", authMiddleware, checkRole("teacher", "admin"), getAllTraining);
 router.get("/:studentId", authMiddleware, checkRole("teacher", "admin"), getTrainingByStudent);
 
 module.exports = router;

@@ -63,7 +63,8 @@ const createTraining = async (req, res) => {
     });
 
     await newTraining.save();
-    await newTraining.populate("student", "name email role");
+    await newTraining.populate("student", "name email role URN section year");
+
 
     res.status(201).json({ success: true, message: "Training saved!", data: newTraining });
   } catch (error) {
@@ -76,7 +77,8 @@ const createTraining = async (req, res) => {
 const getMyTraining = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const trainings = await StudentTraining.find({ student: studentId }).populate("student", "name email role");
+    const trainings = await StudentTraining.find({ student: studentId }).populate("student", "name email role URN section year")
+;
     res.json({ success: true, data: trainings });
   } catch (error) {
     console.error(error);
@@ -95,7 +97,8 @@ const updateTraining = async (req, res) => {
       updates.certificatepdf = result.secure_url;
     }
 
-    const updated = await StudentTraining.findByIdAndUpdate(id, updates, { new: true }).populate("student", "name email role");
+    const updated = await StudentTraining.findByIdAndUpdate(id, updates, { new: true }).populate("student", "name email role URN section year")
+;
 
     if (!updated) return res.status(404).json({ success: false, message: "Training not found" });
 
@@ -109,7 +112,8 @@ const updateTraining = async (req, res) => {
 // 🔹 Teacher/Admin: get all trainings
 const getAllTraining = async (req, res) => {
   try {
-    const trainings = await StudentTraining.find().populate("student", "name email role");
+    const trainings = await StudentTraining.find().populate("student", "name email role URN section year")
+;
     res.json({ success: true, data: trainings });
   } catch (error) {
     console.error(error);
@@ -121,7 +125,8 @@ const getAllTraining = async (req, res) => {
 const getTrainingByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const trainings = await StudentTraining.find({ student: studentId }).populate("student", "name email role");
+    const trainings = await StudentTraining.find({ student: studentId }).populate("student", "name email role URN section year")
+;
     res.json({ success: true, data: trainings });
   } catch (error) {
     console.error(error);

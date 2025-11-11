@@ -16,7 +16,7 @@ router.post("/save", authMiddleware, upload.single("certificateFile"), saveCerti
 router.get("/me", authMiddleware,checkRole("student"), getMyCertificates);
 
 // Teacher/Admin
-router.get("/branch", authMiddleware,checkRole("student"), getBranchCertificates);
-router.get("/:studentId", authMiddleware,checkRole("student"), getStudentCertificates);
+router.get("/all", authMiddleware,checkRole("teacher", "admin"), getBranchCertificates);
+router.get("/:studentId", authMiddleware,checkRole("teacher", "admin"), getStudentCertificates);
 
 module.exports = router;
