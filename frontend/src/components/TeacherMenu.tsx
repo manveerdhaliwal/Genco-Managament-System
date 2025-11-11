@@ -1,6 +1,8 @@
-import { role } from "@/lib/data";
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const menuItems = [
   {
@@ -118,6 +120,25 @@ const menuItems = [
 ];
 
 const TeacherMenu = () => {
+  const [role, setRole] = useState<string>("teacher");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    
+    if (typeof window !== "undefined") {
+      const userRole = localStorage.getItem("userRole") || 
+                       localStorage.getItem("role") || 
+                       "teacher";
+      setRole(userRole);
+      console.log("Current role:", userRole);
+    }
+  }, []);
+
+  if (!mounted) {
+    return <div className="mt-4 text-sm">Loading...</div>;
+  }
+
   return (
     <div className="mt-4 text-sm">
       {menuItems.map((section) => (
@@ -126,7 +147,6 @@ const TeacherMenu = () => {
             {section.title}
           </span>
           {section.items.map((item) => {
-            // Check if visible array exists and includes the role
             if (item.visible && item.visible.includes(role)) {
               return (
                 <Link

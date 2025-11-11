@@ -11,7 +11,7 @@ type DutyLeave = {
     name: string;
     CRN: string;
     URN: string;
-    branch: string;
+    branch: string | { _id: string; name: string }; // Can be string or object
     year: string;
     section?: string;
   };
@@ -52,6 +52,12 @@ export default function TeacherDutyLeaveApproval() {
     remarks: "",
   });
 
+  // Helper function to get branch name
+  const getBranchName = (branch: string | { _id: string; name: string }): string => {
+    if (typeof branch === 'string') return branch;
+    return branch?.name || 'N/A';
+  };
+
   useEffect(() => {
     fetchUserRole();
     fetchDutyLeaves();
@@ -72,25 +78,24 @@ export default function TeacherDutyLeaveApproval() {
       console.error("Error fetching user role:", err);
     }
   };
-// In frontend/src/app/dashboard/teacher/dutyleaveapproval/page.tsx
-// Update line ~80:
-const fetchDutyLeaves = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:5000/api/duty-leave/teacher", {
-      headers: { Authorization: `Bearer ${token}` },
-      credentials: "include",
-    });
-    const data = await res.json();
-    if (data.success && Array.isArray(data.data)) {
-      setLeaves(data.data);
+
+  const fetchDutyLeaves = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/duty-leave/teacher", {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setLeaves(data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching duty leaves:", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error fetching duty leaves:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const openRemarksModal = (leaveId: string, action: "Approved" | "Rejected") => {
     setRemarksModal({
@@ -110,42 +115,42 @@ const fetchDutyLeaves = async () => {
     });
   };
 
-  // Update handleApproval function around line ~120:
-const handleApproval = async () => {
-  if (!remarksModal.action || !remarksModal.leaveId) return;
+  const handleApproval = async () => {
+    if (!remarksModal.action || !remarksModal.leaveId) return;
 
-  try {
-    const token = localStorage.getItem("token");
-    const payload = {
-      leaveId: remarksModal.leaveId,
-      advisor_approval: remarksModal.action,
-      advisor_remarks: remarksModal.remarks,
-    };
+    try {
+      const token = localStorage.getItem("token");
+      const payload = {
+        leaveId: remarksModal.leaveId,
+        advisor_approval: remarksModal.action,
+        advisor_remarks: remarksModal.remarks,
+      };
 
-    const res = await fetch("http://localhost:5000/api/duty-leave/advisor-approval", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
+      const res = await fetch("http://localhost:5000/api/duty-leave/advisor-approval", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.success) {
-      alert(`Duty leave ${remarksModal.action.toLowerCase()} successfully!`);
-      closeRemarksModal();
-      fetchDutyLeaves();
-    } else {
-      alert(data.message || "Failed to update approval status");
+      if (data.success) {
+        alert(`Duty leave ${remarksModal.action.toLowerCase()} successfully!`);
+        closeRemarksModal();
+        fetchDutyLeaves();
+      } else {
+        alert(data.message || "Failed to update approval status");
+      }
+    } catch (err) {
+      console.error("Error updating approval:", err);
+      alert("Error updating approval status");
     }
-  } catch (err) {
-    console.error("Error updating approval:", err);
-    alert("Error updating approval status");
-  }
-};
+  };
+
   const getStatusBadge = (status: string) => {
     const styles = {
       Pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
@@ -237,26 +242,19 @@ const handleApproval = async () => {
 
   // Apply filters
   const filteredLeaves = leaves.filter((leave) => {
-    // Determine which approval status to check based on role
     const relevantStatus = userRole === "advisor" ? leave.advisor_approval : leave.hod_approval;
 
-    // Approval status filter
     if (filter === "pending" && relevantStatus !== "Pending") return false;
     if (filter === "approved" && relevantStatus !== "Approved") return false;
     if (filter === "rejected" && relevantStatus !== "Rejected") return false;
 
-    // For HOD, only show leaves where advisor has approved (or if checking all/rejected)
     if (userRole === "hod" && filter === "pending" && leave.advisor_approval !== "Approved") {
       return false;
     }
 
-    // Year filter
     if (yearFilter !== "all" && leave.student.year !== yearFilter) return false;
-
-    // Section filter
     if (sectionFilter !== "all" && leave.student.section !== sectionFilter) return false;
 
-    // Search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -493,7 +491,7 @@ const handleApproval = async () => {
                             Section: {leave.student.section || "N/A"}
                           </p>
                           <p className="text-sm text-gray-600 col-span-2">
-                            Branch: {leave.student.branch}
+                            Branch: {getBranchName(leave.student.branch)}
                           </p>
                           {leave.advisor && userRole === "hod" && (
                             <p className="text-sm text-gray-600 col-span-2">
