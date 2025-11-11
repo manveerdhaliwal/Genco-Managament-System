@@ -10,6 +10,7 @@ interface PaperData {
   studentName: string;
   urn: string;
   section: string;
+  year: string;      // ✅ IMPORTANT
   paperTitle: string;
   publicationName: string;
   publicationDate: string;
@@ -30,51 +31,58 @@ export default function ResearchPaperPage() {
   const [error, setError] = useState("");
   const [selectedPaper, setSelectedPaper] = useState<PaperData | null>(null);
 
- useEffect(() => {
-  const fetchPapers = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/Research/studentpapers", {
-        withCredentials: true, // if using cookies
-      });
+  useEffect(() => {
+    const fetchPapers = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get("http://localhost:5000/api/Research/studentpapers", {
+          withCredentials: true,
+        });
 
-      if (res.data.success) {
-        // Map backend response to frontend-friendly fields
-        const mapped = res.data.data.map((p: any) => ({
-          _id: p._id,
-          studentName: p.student.name,
-          urn: p.student.URN,
-          section: p.student.section,
-          paperTitle: p.paperTitle,
-          publicationName: p.journalName,
-          publicationDate: new Date(p.date).toISOString().split("T")[0],
-          paperLink: p.linkOfPaper,
-          doi: p.doi,
-          facultyName: p.facultyMentor,
-          paperType: p.type,
-        }));
-        setPapers(mapped);
-      } else {
-        setError(res.data.message || "No papers found");
+        if (res.data.success) {
+          const mapped = res.data.data.map((p: any) => ({
+            _id: p._id,
+            studentName: p.student?.name || "N/A",
+            urn: p.student?.URN || "N/A",
+            section: p.student?.section || "N/A",
+            year: p.student?.year || "N/A", // ✅ MAPPED HERE
+            paperTitle: p.paperTitle,
+            publicationName: p.journalName,
+            publicationDate: new Date(p.date).toISOString().split("T")[0],
+            paperLink: p.linkOfPaper,
+            doi: p.doi,
+            facultyName: p.facultyMentor,
+            paperType: p.type,
+          }));
+
+          setPapers(mapped);
+        } else {
+          setError(res.data.message || "No papers found");
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Failed to fetch papers");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch papers");
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetchPapers();
+  }, []);
+
+  // ✅ YEAR FILTERING LOGIC
+  const yearMap: Record<string, number> = {
+    Final: 4,
+    "3rd": 3,
+    "2nd": 2,
   };
 
-  fetchPapers();
-}, []);
-
-  // Filter by year and section
-  const yearMap: Record<string, number> = { "Final": 4, "3rd": 3, "2nd": 2 };
   const filteredPapers = papers
     .filter((p) => p.section === selectedSection || selectedSection === "All")
     .filter((p) => {
       if (!selectedYear) return true;
-      return p.studentName && yearMap[selectedYear] ? true : false; // adjust later if student year available
+      const expectedYear = String(yearMap[selectedYear]);
+      return String(p.year) === expectedYear;
     })
     .sort((a, b) => a.urn.localeCompare(b.urn));
 
@@ -84,10 +92,11 @@ export default function ResearchPaperPage() {
   return (
     <div className="min-h-screen p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
+
+        {/* Back Button */}
         <Link
           href={`/dashboard/teacher`}
           className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-          aria-label="Go back"
         >
           <svg
             className="w-6 h-6"
@@ -95,12 +104,12 @@ export default function ResearchPaperPage() {
             stroke="currentColor"
             strokeWidth="2"
             viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
           </svg>
         </Link>
 
+        {/* ✅ YEAR SELECTION */}
         {!selectedYear && (
           <>
             <h1 className="text-3xl font-bold text-indigo-700 mb-4">Select Year</h1>
@@ -118,10 +127,13 @@ export default function ResearchPaperPage() {
           </>
         )}
 
+        {/* ✅ YEAR PAGE */}
         {selectedYear && (
           <>
             <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-indigo-700 mb-4">{selectedYear} Year Papers</h1>
+              <h1 className="text-3xl font-bold text-indigo-700 mb-4">
+                {selectedYear} Year Papers
+              </h1>
               <button
                 onClick={() => {
                   setSelectedYear(null);
@@ -133,7 +145,7 @@ export default function ResearchPaperPage() {
               </button>
             </div>
 
-            {/* Section Filter */}
+            {/* ✅ SECTION FILTER */}
             <div className="mb-4 flex gap-4 items-center">
               <span className="font-medium text-gray-700">Filter by Section:</span>
               <select
@@ -142,12 +154,14 @@ export default function ResearchPaperPage() {
                 onChange={(e) => setSelectedSection(e.target.value)}
               >
                 {sections.map((sec) => (
-                  <option key={sec} value={sec}>{sec}</option>
+                  <option key={sec} value={sec}>
+                    {sec}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {/* Table */}
+            {/* ✅ TABLE */}
             <div className="overflow-x-auto shadow-md rounded-2xl bg-white">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-indigo-100">
@@ -157,7 +171,9 @@ export default function ResearchPaperPage() {
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Section</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Title</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Type</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">View</th>
+                    <th className="px-6 py-3 text-center text-sm font-medium text-gray-700">
+                      View
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -184,7 +200,7 @@ export default function ResearchPaperPage() {
           </>
         )}
 
-        {/* Popup / Modal */}
+        {/* ✅ MODAL */}
         {selectedPaper && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-3xl p-4 max-w-4xl w-full relative">
@@ -194,22 +210,33 @@ export default function ResearchPaperPage() {
               >
                 &times;
               </button>
-              <h2 className="text-xl font-semibold mb-4">{selectedPaper.studentName} - {selectedPaper.paperTitle}</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                {selectedPaper.studentName} - {selectedPaper.paperTitle}
+              </h2>
               <p className="mb-2"><strong>URN:</strong> {selectedPaper.urn}</p>
               <p className="mb-2"><strong>Section:</strong> {selectedPaper.section}</p>
               <p className="mb-2"><strong>Publication:</strong> {selectedPaper.publicationName}</p>
               <p className="mb-2"><strong>Date:</strong> {selectedPaper.publicationDate}</p>
-              {selectedPaper.doi && <p className="mb-2"><strong>DOI:</strong> {selectedPaper.doi}</p>}
-              {selectedPaper.facultyName && <p className="mb-2"><strong>Faculty:</strong> {selectedPaper.facultyName}</p>}
+              {selectedPaper.doi && (
+                <p className="mb-2"><strong>DOI:</strong> {selectedPaper.doi}</p>
+              )}
+              {selectedPaper.facultyName && (
+                <p className="mb-2"><strong>Faculty:</strong> {selectedPaper.facultyName}</p>
+              )}
               <p className="mb-2">
                 <strong>Link:</strong>{" "}
-                <a href={selectedPaper.paperLink} target="_blank" className="text-indigo-600 hover:underline">
+                <a
+                  href={selectedPaper.paperLink}
+                  target="_blank"
+                  className="text-indigo-600 hover:underline"
+                >
                   {selectedPaper.paperLink}
                 </a>
               </p>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
