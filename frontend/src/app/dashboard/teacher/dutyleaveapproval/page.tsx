@@ -72,27 +72,25 @@ export default function TeacherDutyLeaveApproval() {
       console.error("Error fetching user role:", err);
     }
   };
-
-  const fetchDutyLeaves = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      // This endpoint should return duty leaves based on the teacher's role
-      // If advisor: returns leaves where teacher is the assigned advisor
-      // If HOD: returns all leaves from their branch
-      const res = await fetch("http://localhost:5000/api/duty-leave/teacher", {
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        setLeaves(data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching duty leaves:", err);
-    } finally {
-      setLoading(false);
+// In frontend/src/app/dashboard/teacher/dutyleaveapproval/page.tsx
+// Update line ~80:
+const fetchDutyLeaves = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch("http://localhost:5000/api/duty-leave/teacher", {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
+    });
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      setLeaves(data.data);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching duty leaves:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const openRemarksModal = (leaveId: string, action: "Approved" | "Rejected") => {
     setRemarksModal({
@@ -112,46 +110,42 @@ export default function TeacherDutyLeaveApproval() {
     });
   };
 
-  const handleApproval = async () => {
-    if (!remarksModal.action || !remarksModal.leaveId) return;
+  // Update handleApproval function around line ~120:
+const handleApproval = async () => {
+  if (!remarksModal.action || !remarksModal.leaveId) return;
 
-    try {
-      const token = localStorage.getItem("token");
-      const payload: any = {
-        leaveId: remarksModal.leaveId,
-      };
+  try {
+    const token = localStorage.getItem("token");
+    const payload = {
+      leaveId: remarksModal.leaveId,
+      advisor_approval: remarksModal.action,
+      advisor_remarks: remarksModal.remarks,
+    };
 
-      if (userRole === "advisor") {
-        payload.advisor_approval = remarksModal.action;
-        payload.advisor_remarks = remarksModal.remarks;
-      } else {
-        payload.hod_approval = remarksModal.action;
-        payload.hod_remarks = remarksModal.remarks;
-      }
+    const res = await fetch("http://localhost:5000/api/duty-leave/advisor-approval", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
 
-      const res = await fetch("http://localhost:5000/api/duty-leave/approve", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+    const data = await res.json();
 
-      if (res.ok) {
-        alert(`Duty leave ${remarksModal.action.toLowerCase()} successfully!`);
-        closeRemarksModal();
-        fetchDutyLeaves();
-      } else {
-        alert("Failed to update approval status");
-      }
-    } catch (err) {
-      console.error("Error updating approval:", err);
-      alert("Error updating approval status");
+    if (data.success) {
+      alert(`Duty leave ${remarksModal.action.toLowerCase()} successfully!`);
+      closeRemarksModal();
+      fetchDutyLeaves();
+    } else {
+      alert(data.message || "Failed to update approval status");
     }
-  };
-
+  } catch (err) {
+    console.error("Error updating approval:", err);
+    alert("Error updating approval status");
+  }
+};
   const getStatusBadge = (status: string) => {
     const styles = {
       Pending: "bg-yellow-100 text-yellow-800 border-yellow-300",

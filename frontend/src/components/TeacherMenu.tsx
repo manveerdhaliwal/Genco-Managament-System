@@ -19,6 +19,12 @@ const menuItems = [
         visible: ["admin", "teacher"],
       },
       {
+        icon: "/calendar.png",
+        label: "Duty Leave Approvals",
+        href: "/dashboard/teacher/dutyleaveapproval",
+        visible: ["admin", "teacher"],
+      },
+      {
         icon: "/student.png",
         label: "Students",
         href: "/list/students",
@@ -36,7 +42,6 @@ const menuItems = [
         href: "/teacherlist/TeacherInfo",
         visible: ["admin", "teacher", "student", "parent"],
       },
-
       {
         icon: "/result.png",
         label: "Results",
@@ -49,7 +54,7 @@ const menuItems = [
         href: "/",
         visible: ["admin", "teacher", "student", "parent"],
       },
-            {
+      {
         icon: "/assignment.png",
         label: "Research Paper",
         href: "/teacherlist/TresearchPapers",
@@ -73,19 +78,13 @@ const menuItems = [
         href: "/teacherlist/TCertifications",
         visible: ["admin", "teacher", "student", "parent"],
       },
-            {
+      {
         icon: "/project.png",
         label: "Projects",
         href: "/teacherlist/Tprojects",
         visible: ["admin", "teacher", "student", "parent"],
       },
-            {
-        icon: "/calendar.png", 
-        label: "Duty Leaves",
-        href: "/dashboard/teacher/dutyleaveapproval",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-         {
+      {
         icon: "/announcement.png",
         label: "Activities",
         href: "/teacherlist/Tactivities",
@@ -100,12 +99,6 @@ const menuItems = [
         icon: "/profile.png",
         label: "Profile",
         href: "/list/profile",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/calendar.png", 
-        label: "Duty Leaves",
-        href: "/dashboard/teacher/dutyleaveapproval",  // ← CHANGED THIS
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
@@ -125,25 +118,33 @@ const menuItems = [
 ];
 
 const TeacherMenu = () => {
-    return (
-        <div className="mt-4 text-sm">{menuItems.map((i)=>(
-            <div className="flex flex-col gap-2" key={i.title}>
-                <span className="hidden lg:block text-gray-400 font-light my-2">{i.title}</span>
-                {i.items.map((item)=>{
-                    if(item.visible.includes(role)){
-                 return (
-                 <Link href={item.href} key={item.label} className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-MyskyLight">
-                 <Image src={item.icon} alt="" width={20} height={20}></Image>
-                 <span className="hidden lg:block">{item.label}</span>
-                  </Link>
-                        );
-                    }
+  return (
+    <div className="mt-4 text-sm">
+      {menuItems.map((section) => (
+        <div className="flex flex-col gap-2" key={section.title}>
+          <span className="hidden lg:block text-gray-400 font-light my-2">
+            {section.title}
+          </span>
+          {section.items.map((item) => {
+            // Check if visible array exists and includes the role
+            if (item.visible && item.visible.includes(role)) {
+              return (
+                <Link
+                  href={item.href}
+                  key={item.label}
+                  className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-MyskyLight"
+                >
+                  <Image src={item.icon} alt="" width={20} height={20} />
+                  <span className="hidden lg:block">{item.label}</span>
+                </Link>
+              );
+            }
+            return null;
+          })}
+        </div>
+      ))}
+    </div>
+  );
+};
 
-                })}
-            </div>
-        ))}</div>
-    )
-}
-
-export default TeacherMenu
-
+export default TeacherMenu;
