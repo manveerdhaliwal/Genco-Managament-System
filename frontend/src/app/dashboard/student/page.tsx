@@ -1,7 +1,8 @@
-"use client";
+// "use client";
+
 // import { useEffect, useState } from "react";
 // import UserCard from "@/components/UserCard";
-// import EventCalendar from "@/components/EventCalendar";
+// import EventCalendar, { EventData } from "@/components/EventCalendar";
 // import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 // import axios from "axios";
 
@@ -26,6 +27,7 @@
 // const StudentPage = () => {
 //   const [projects, setProjects] = useState<ProjectData[]>([]);
 //   const [certificates, setCertificates] = useState<CertificateData[]>([]);
+//   const [events, setEvents] = useState<EventData[]>([]);
 
 //   // Fetch projects from localStorage
 //   useEffect(() => {
@@ -61,15 +63,36 @@
 //     fetchCertificates();
 //   }, []);
 
+//   // Fetch events from backend
+//   useEffect(() => {
+//     const fetchEvents = async () => {
+//       try {
+//         const res = await axios.get("http://localhost:5000/api/events", { withCredentials: true });
+//         console.log("Events fetched:", res.data.events); // Debug
+//         if (res.data.success) {
+//           // Sort events by date ascending
+//           const sortedEvents = res.data.events.sort(
+//             (a: EventData, b: EventData) => new Date(a.date).getTime() - new Date(b.date).getTime()
+//           );
+//           setEvents(sortedEvents);
+//         }
+//       } catch (err) {
+//         console.error("Error fetching events:", err);
+//       }
+//     };
+
+//     fetchEvents();
+//   }, []);
+
 //   return (
 //     <div className="p-4 flex gap-4 flex-col md:flex-row">
 //       {/* LEFT */}
 //       <div className="w-full lg:w-2/3">
 //         {/* USER CARDS */}
 //         <div className="flex gap-4 justify-between flex-wrap mb-6">
-//           <UserCard type="Upcoming events" value={0} />
-//           <UserCard type="Certificates Achieved" value={certificates.length} /> {/* Dynamic */}
-//           <UserCard type="Active Projects" value={projects.length} /> {/* Dynamic */}
+//           <UserCard type="Upcoming events" value={events.length} />
+//           <UserCard type="Certificates Achieved" value={certificates.length} />
+//           <UserCard type="Active Projects" value={projects.length} />
 //           <UserCard type="Duty Leaves" value="2 Pending" />
 //         </div>
 
@@ -100,13 +123,16 @@
 
 //       {/* RIGHT */}
 //       <div className="w-full lg:w-1/3 flex flex-col gap-8">
-//         <EventCalendar />
+//         <EventCalendar events={events} />
 //       </div>
 //     </div>
 //   );
 // };
 
 // export default StudentPage;
+
+
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -172,18 +198,30 @@ const StudentPage = () => {
     fetchCertificates();
   }, []);
 
-  // Fetch events from backend
+  // Fetch events from backend and filter upcoming
   useEffect(() => {
     const fetchEvents = async () => {
       try {
         const res = await axios.get("http://localhost:5000/api/events", { withCredentials: true });
-        console.log("Events fetched:", res.data.events); // Debug
+        console.log("Events fetched:", res.data.events);
+
         if (res.data.success) {
-          // Sort events by date ascending
-          const sortedEvents = res.data.events.sort(
+          const today = new Date();
+
+          // Keep only upcoming events (date >= today)
+          const upcomingEvents = res.data.events.filter((event: EventData) => {
+            const eventDate = new Date(event.date);
+            // Compare only dates, ignoring time
+            return eventDate.setHours(0, 0, 0, 0) >= today.setHours(0, 0, 0, 0);
+          });
+
+          // Sort by nearest upcoming date
+          const sortedUpcoming = upcomingEvents.sort(
             (a: EventData, b: EventData) => new Date(a.date).getTime() - new Date(b.date).getTime()
           );
-          setEvents(sortedEvents);
+
+          // Limit to first 4 upcoming events
+          setEvents(sortedUpcoming.slice(0, 4));
         }
       } catch (err) {
         console.error("Error fetching events:", err);
