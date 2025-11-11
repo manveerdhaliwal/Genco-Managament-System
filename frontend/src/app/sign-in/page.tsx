@@ -25,6 +25,20 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
+     // 👇 Hardcoded admin check
+    if (role === "admin") {
+      const hardcodedEmail = "admin@gmail.com";
+      const hardcodedPassword = "admin123";
+
+      if (email === hardcodedEmail && password === hardcodedPassword) {
+        // Redirect to admin dashboard
+        router.push(roleUrls.admin);
+      } else {
+        setError("Invalid admin credentials!");
+      }
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
@@ -174,3 +188,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
