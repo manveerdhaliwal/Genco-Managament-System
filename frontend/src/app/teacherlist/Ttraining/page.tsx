@@ -228,27 +228,22 @@ export default function TeacherTrainingPage() {
               </div>
 
               {/* ✅ Cloudinary PDF */}
-      {selectedPreview.certificatepdf && (
+   {selectedPreview.certificatepdf && (
   <div className="mt-4">
     <p className="font-medium text-indigo-700 mb-2">Certificate Preview:</p>
 
-    {(() => {
-      const pdfUrl = selectedPreview.certificatepdf.replace(
-        "/upload/",
-        "/upload/fl_content_type:application/pdf/fl_disposition:inline/"
-      );
+    <iframe
+      src={selectedPreview.certificatepdf}
+      className="w-full h-80 border rounded-lg"
+      title="Certificate PDF"
+    ></iframe>
 
-      return (
-        <embed
-          src={pdfUrl}
-          type="application/pdf"
-          className="w-full h-80 border rounded-lg"
-        />
-      );
-    })()}
-
+    {/* ✅ DOWNLOAD BUTTON */}
     <a
-      href={selectedPreview.certificatepdf}
+      href={selectedPreview.certificatepdf.replace(
+        "/upload/fl_disposition:inline/",
+        "/upload/fl_attachment:certificate/"
+      )}
       download
       target="_blank"
       className="mt-3 inline-block bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700"
@@ -257,6 +252,7 @@ export default function TeacherTrainingPage() {
     </a>
   </div>
 )}
+
 
             </div>
           </div>

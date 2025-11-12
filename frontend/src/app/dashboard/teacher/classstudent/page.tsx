@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 
 type Student = {
   name: string;
- // roll: string;
   CRN: string;
   URN: string;
   phone?: string;
@@ -22,23 +21,26 @@ type Student = {
   certificatePdf?: string;
   internshipPdf?: string;
   researchPaperUrl?: string;
-  year: string; // important to categorize
-  section:string;
+  year: string; 
+  section: string;
 };
+
+const sections = ["All", "A", "B"]; // ✅ Section options
 
 export default function StudentListPage() {
   const searchParams = useSearchParams();
-  const classId = searchParams.get("classId"); // e.g., cse-final-year
+  const classId = searchParams.get("classId");
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedSection, setSelectedSection] = useState("All"); // ✅ Selected section
 
   useEffect(() => {
     const fetchStudents = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/teacher/mystudents", {
           method: "GET",
-          credentials: "include", // important if using cookie-based auth
+          credentials: "include",
         });
 
         const data = await res.json();
@@ -70,7 +72,6 @@ export default function StudentListPage() {
   if (loading) return <p className="p-6">Loading students...</p>;
   if (error) return <p className="p-6 text-red-500">{error}</p>;
 
-  // Map classId to year
   const yearMap: Record<string, string> = {
     "cse-2nd-year": "2",
     "cse-3rd-year": "3",
@@ -79,8 +80,10 @@ export default function StudentListPage() {
 
   const yearFilter = yearMap[classId || ""] || "";
 
-  const filteredStudents = students.filter((s) => String(s.year) === yearFilter);
-
+  // ✅ Apply year + section filter
+  const filteredStudents = students
+    .filter((s) => String(s.year) === yearFilter)
+    .filter((s) => selectedSection === "All" || s.section === selectedSection);
 
   return (
     <div className="p-6">
@@ -105,8 +108,24 @@ export default function StudentListPage() {
         {classId?.replace(/-/g, " ").toUpperCase()} - Students
       </h1>
 
+      {/* ✅ Section Filter */}
+      <div className="mb-4 flex gap-4 items-center">
+        <span className="font-medium text-gray-700">Filter by Section:</span>
+        <select
+          className="border border-gray-300 rounded-xl px-4 py-2"
+          value={selectedSection}
+          onChange={(e) => setSelectedSection(e.target.value)}
+        >
+          {sections.map((sec) => (
+            <option key={sec} value={sec}>
+              {sec}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {filteredStudents.length === 0 ? (
-        <p>No students found for this year.</p>
+        <p>No students found for this selection.</p>
       ) : (
         <table className="table-auto border-collapse border border-gray-300 w-full text-left">
           <thead>
@@ -141,5 +160,3 @@ export default function StudentListPage() {
     </div>
   );
 }
-
-

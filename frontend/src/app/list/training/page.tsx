@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
-
 import axios from "axios";
-
 
 type TrainingField = "TR101" | "TR102" | "TR103";
 
@@ -31,40 +29,33 @@ export default function TrainingPage() {
 
   const MAX_FILE_SIZE_MB = 5;
 
+  // Fetch all trainings from backend
+  const fetchTrainings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/Training/me", {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+      if (res.data.success) setSubmittedTrainings(res.data.data);
+    } catch (err) {
+      console.error("Error fetching trainings:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchTrainings = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/Training/me", {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true,
-        });
-        if (res.data.success) setSubmittedTrainings(res.data.data);
-      } catch (err) {
-        console.error("Error fetching trainings:", err);
-      }
-    };
     fetchTrainings();
   }, []);
 
-const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  const { name, type, value } = e.target;
-
-  if (type === "checkbox") {
-    const target = e.target as HTMLInputElement; // ✅ Type assertion
-    setFormData((prev) => ({
-      ...prev,
-      [name]: target.checked,
-    }));
-  } else {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }
-};
-
-
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, type, value } = e.target;
+    if (type === "checkbox") {
+      const target = e.target as HTMLInputElement;
+      setFormData((prev) => ({ ...prev, [name]: target.checked }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
 
   const handleTrainingSelect = (type: TrainingField) => {
     setSelectedTraining(type);
@@ -131,10 +122,8 @@ const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement
 
     try {
       const token = localStorage.getItem("token");
-      let res;
-
-      if (editingIndex !== null && submittedTrainings[editingIndex]._id) {
-        res = await axios.put(
+      if (editingIndex !== null && submittedTrainings[editingIndex]?._id) {
+        await axios.put(
           `http://localhost:5000/api/Training/${submittedTrainings[editingIndex]._id}`,
           payload,
           {
@@ -143,25 +132,19 @@ const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement
           }
         );
       } else {
-        res = await axios.post("http://localhost:5000/api/Training", payload, {
+        await axios.post("http://localhost:5000/api/Training", payload, {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
           withCredentials: true,
         });
       }
 
-      if (res.data.success) {
-        const savedTraining: TrainingData = res.data.data;
-        const updatedList =
-          editingIndex !== null
-            ? submittedTrainings.map((t, i) => (i === editingIndex ? savedTraining : t))
-            : [...submittedTrainings, savedTraining];
+      // Refetch all trainings to show full list
+      await fetchTrainings();
 
-        setSubmittedTrainings(updatedList);
-        setFormData({});
-        setSelectedTraining("");
-        setEditingIndex(null);
-        setError("");
-      }
+      setFormData({});
+      setSelectedTraining("");
+      setEditingIndex(null);
+      setError("");
     } catch (err) {
       console.error("Error submitting training:", err);
       setError("Failed to submit training.");
@@ -188,27 +171,24 @@ const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement
   return (
     <div className="min-h-screen flex flex-col items-center justify-start p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
       <div className="w-full max-w-3xl p-8 sm:p-10 bg-white shadow-2xl rounded-3xl border border-gray-200">
-
-          <Link
-    href="/dashboard/student"
-    className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-    aria-label="Go back"
-  >
-    <svg
-      className="w-6 h-6"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
-    </svg>
-  </Link>
-        
+        <Link
+          href="/dashboard/student"
+          className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+          aria-label="Go back"
+        >
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </Link>
 
         <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">🎓 Student Training</h2>
-
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row justify-between gap-3">
@@ -227,17 +207,10 @@ const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement
               <textarea name="projectDescription" placeholder="Project Description" value={formData.projectDescription || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm resize-none" rows={3} required />
               <input type="text" name="trainingDuration" placeholder="Training Duration (e.g., 4 weeks)" value={formData.trainingDuration || ""} onChange={handleInputChange} className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm" required />
 
-             <label className="flex items-center gap-2 mt-2">
-  <input
-    type="checkbox"
-    name="certificateAwarded"
-    checked={formData.certificateAwarded || false}
-    onChange={handleInputChange}
-    className="w-5 h-5"
-  />
-  Certificate Awarded
-</label>
-
+              <label className="flex items-center gap-2 mt-2">
+                <input type="checkbox" name="certificateAwarded" checked={formData.certificateAwarded || false} onChange={handleInputChange} className="w-5 h-5" />
+                Certificate Awarded
+              </label>
 
               <label className="font-medium text-gray-700 mt-2">Upload PDF:</label>
               <input type="file" accept="application/pdf" onChange={handleFileChange} className="border border-gray-300 p-3 rounded-2xl w-full focus:ring-2 focus:ring-indigo-300 shadow-sm" required={!formData.certificatepdf} />
@@ -274,7 +247,14 @@ const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement
                   <p className="text-sm text-gray-600">Duration: {training.trainingDuration}</p>
                   <p className="text-sm text-gray-600">Certificate Awarded: {training.certificateAwarded ? "Yes" : "No"}</p>
                   {training.certificatepdf && (
-                    <a href={training.certificatepdf} target="_blank" className="text-indigo-600 underline text-sm">View PDF</a>
+                    <a
+                      href={training.certificatepdf}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 underline text-sm"
+                    >
+                      View PDF
+                    </a>
                   )}
                 </div>
                 <button onClick={() => handleEdit(index)} className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600">Edit</button>
