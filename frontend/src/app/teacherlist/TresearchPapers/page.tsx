@@ -10,7 +10,7 @@ interface PaperData {
   studentName: string;
   urn: string;
   section: string;
-  year: string;      // ✅ IMPORTANT
+  year: string;
   paperTitle: string;
   publicationName: string;
   publicationDate: string;
@@ -30,6 +30,7 @@ export default function ResearchPaperPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedPaper, setSelectedPaper] = useState<PaperData | null>(null);
+  const [searchTerm, setSearchTerm] = useState(""); // ✅ Search term
 
   useEffect(() => {
     const fetchPapers = async () => {
@@ -45,7 +46,7 @@ export default function ResearchPaperPage() {
             studentName: p.student?.name || "N/A",
             urn: p.student?.URN || "N/A",
             section: p.student?.section || "N/A",
-            year: p.student?.year || "N/A", // ✅ MAPPED HERE
+            year: p.student?.year || "N/A",
             paperTitle: p.paperTitle,
             publicationName: p.journalName,
             publicationDate: new Date(p.date).toISOString().split("T")[0],
@@ -54,7 +55,6 @@ export default function ResearchPaperPage() {
             facultyName: p.facultyMentor,
             paperType: p.type,
           }));
-
           setPapers(mapped);
         } else {
           setError(res.data.message || "No papers found");
@@ -70,13 +70,13 @@ export default function ResearchPaperPage() {
     fetchPapers();
   }, []);
 
-  // ✅ YEAR FILTERING LOGIC
   const yearMap: Record<string, number> = {
     Final: 4,
     "3rd": 3,
     "2nd": 2,
   };
 
+  // ✅ Filter papers based on year, section, and search term
   const filteredPapers = papers
     .filter((p) => p.section === selectedSection || selectedSection === "All")
     .filter((p) => {
@@ -84,6 +84,12 @@ export default function ResearchPaperPage() {
       const expectedYear = String(yearMap[selectedYear]);
       return String(p.year) === expectedYear;
     })
+    .filter(
+      (p) =>
+        p.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.urn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.paperTitle.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     .sort((a, b) => a.urn.localeCompare(b.urn));
 
   if (loading) return <p className="p-6">Loading papers...</p>;
@@ -109,7 +115,7 @@ export default function ResearchPaperPage() {
           </svg>
         </Link>
 
-        {/* ✅ YEAR SELECTION */}
+        {/* YEAR SELECTION */}
         {!selectedYear && (
           <>
             <h1 className="text-3xl font-bold text-indigo-700 mb-4">Select Year</h1>
@@ -127,17 +133,16 @@ export default function ResearchPaperPage() {
           </>
         )}
 
-        {/* ✅ YEAR PAGE */}
+        {/* YEAR PAGE */}
         {selectedYear && (
           <>
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-indigo-700 mb-4">
-                {selectedYear} Year Papers
-              </h1>
+            <div className="flex justify-between items-center flex-wrap gap-3">
+              <h1 className="text-3xl font-bold text-indigo-700">{selectedYear} Year Papers</h1>
               <button
                 onClick={() => {
                   setSelectedYear(null);
                   setSelectedSection("All");
+                  setSearchTerm("");
                 }}
                 className="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-300 transition"
               >
@@ -145,23 +150,34 @@ export default function ResearchPaperPage() {
               </button>
             </div>
 
-            {/* ✅ SECTION FILTER */}
-            <div className="mb-4 flex gap-4 items-center">
-              <span className="font-medium text-gray-700">Filter by Section:</span>
-              <select
-                className="border border-gray-300 rounded-xl px-4 py-2"
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-              >
-                {sections.map((sec) => (
-                  <option key={sec} value={sec}>
-                    {sec}
-                  </option>
-                ))}
-              </select>
+            {/* SECTION FILTER + SEARCH */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex gap-4 items-center">
+                <span className="font-medium text-gray-700">Filter by Section:</span>
+                <select
+                  className="border border-gray-300 rounded-xl px-4 py-2"
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                >
+                  {sections.map((sec) => (
+                    <option key={sec} value={sec}>
+                      {sec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* ✅ Search Bar */}
+              <input
+                type="text"
+                placeholder="Search by URN, Name, or Title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border border-gray-300 rounded-xl px-4 py-2 w-full sm:w-80 focus:ring-2 focus:ring-indigo-400 outline-none"
+              />
             </div>
 
-            {/* ✅ TABLE */}
+            {/* TABLE */}
             <div className="overflow-x-auto shadow-md rounded-2xl bg-white">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-indigo-100">
@@ -171,36 +187,42 @@ export default function ResearchPaperPage() {
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Section</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Title</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Type</th>
-                    <th className="px-6 py-3 text-center text-sm font-medium text-gray-700">
-                      View
-                    </th>
+                    <th className="px-6 py-3 text-center text-sm font-medium text-gray-700">View</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {filteredPapers.map((paper) => (
-                    <tr key={paper._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-800">{paper.urn}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{paper.studentName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{paper.section}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{paper.paperTitle}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{paper.paperType}</td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => setSelectedPaper(paper)}
-                          className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700 transition"
-                        >
-                          View
-                        </button>
+                  {filteredPapers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-6 text-gray-500">
+                        No matching papers found
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredPapers.map((paper) => (
+                      <tr key={paper._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-800">{paper.urn}</td>
+                        <td className="px-6 py-4 text-sm text-gray-800">{paper.studentName}</td>
+                        <td className="px-6 py-4 text-sm text-gray-800">{paper.section}</td>
+                        <td className="px-6 py-4 text-sm text-gray-800">{paper.paperTitle}</td>
+                        <td className="px-6 py-4 text-sm text-gray-800">{paper.paperType}</td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => setSelectedPaper(paper)}
+                            className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700 transition"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </>
         )}
 
-        {/* ✅ MODAL */}
+        {/* MODAL */}
         {selectedPaper && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-3xl p-4 max-w-4xl w-full relative">
@@ -210,16 +232,14 @@ export default function ResearchPaperPage() {
               >
                 &times;
               </button>
-              <h2 className="text-xl font-semibold mb-4">
+              <h2 className="text-xl font-semibold mb-4 text-indigo-700">
                 {selectedPaper.studentName} - {selectedPaper.paperTitle}
               </h2>
               <p className="mb-2"><strong>URN:</strong> {selectedPaper.urn}</p>
               <p className="mb-2"><strong>Section:</strong> {selectedPaper.section}</p>
               <p className="mb-2"><strong>Publication:</strong> {selectedPaper.publicationName}</p>
               <p className="mb-2"><strong>Date:</strong> {selectedPaper.publicationDate}</p>
-              {selectedPaper.doi && (
-                <p className="mb-2"><strong>DOI:</strong> {selectedPaper.doi}</p>
-              )}
+              {selectedPaper.doi && <p className="mb-2"><strong>DOI:</strong> {selectedPaper.doi}</p>}
               {selectedPaper.facultyName && (
                 <p className="mb-2"><strong>Faculty:</strong> {selectedPaper.facultyName}</p>
               )}
@@ -236,7 +256,6 @@ export default function ResearchPaperPage() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

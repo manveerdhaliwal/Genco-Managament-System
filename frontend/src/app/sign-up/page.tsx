@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FaEye, FaEyeSlash } from "react-icons/fa"; // 👈 added
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 interface Branch {
   _id: string;
@@ -13,9 +13,11 @@ export default function SignupPage() {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [showPassword, setShowPassword] = useState(false); // 👈 added
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Fetch branches for both teacher and student
+  const sections = ["A", "B", "C", "D", "E", "F"]; // ✅ Section options
+
+  // Fetch branches
   useEffect(() => {
     const fetchBranches = async () => {
       try {
@@ -137,7 +139,7 @@ export default function SignupPage() {
                   style={{ backgroundColor: "#F1F0FF" }}
                 />
 
-                {/* 👇 Password with show/hide feature */}
+                {/* Password with show/hide */}
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -156,7 +158,6 @@ export default function SignupPage() {
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {/* 👆 End password */}
               </div>
             )}
 
@@ -217,15 +218,23 @@ export default function SignupPage() {
                   className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"
                   style={{ backgroundColor: "#F1F0FF" }}
                 />
-                <input
-                  type="text"
+
+                {/* ✅ Section dropdown */}
+                <select
                   name="section"
-                  placeholder="Section"
                   onChange={handleChange}
                   required
                   className="p-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#CFCEFF]"
                   style={{ backgroundColor: "#F1F0FF" }}
-                />
+                >
+                  <option value="">Select Section</option>
+                  {sections.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+
                 <input
                   type="text"
                   name="semester"

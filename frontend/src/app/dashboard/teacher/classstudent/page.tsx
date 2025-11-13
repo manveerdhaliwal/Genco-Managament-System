@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -21,7 +21,7 @@ type Student = {
   certificatePdf?: string;
   internshipPdf?: string;
   researchPaperUrl?: string;
-  year: string; 
+  year: string;
   section: string;
 };
 
@@ -34,6 +34,7 @@ export default function StudentListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedSection, setSelectedSection] = useState("All"); // ✅ Selected section
+  const [searchQuery, setSearchQuery] = useState(""); // ✅ Search state
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -80,13 +81,22 @@ export default function StudentListPage() {
 
   const yearFilter = yearMap[classId || ""] || "";
 
-  // ✅ Apply year + section filter
+  // ✅ Apply year + section + search filter
   const filteredStudents = students
     .filter((s) => String(s.year) === yearFilter)
-    .filter((s) => selectedSection === "All" || s.section === selectedSection);
+    .filter((s) => selectedSection === "All" || s.section === selectedSection)
+    .filter((s) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        s.name?.toLowerCase().includes(query) ||
+        s.URN?.toLowerCase().includes(query) ||
+        s.CRN?.toLowerCase().includes(query)
+      );
+    });
 
   return (
     <div className="p-6">
+      {/* 🔙 Back Button */}
       <Link
         href={`/dashboard/teacher/class`}
         className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
@@ -108,22 +118,35 @@ export default function StudentListPage() {
         {classId?.replace(/-/g, " ").toUpperCase()} - Students
       </h1>
 
-      {/* ✅ Section Filter */}
-      <div className="mb-4 flex gap-4 items-center">
-        <span className="font-medium text-gray-700">Filter by Section:</span>
-        <select
-          className="border border-gray-300 rounded-xl px-4 py-2"
-          value={selectedSection}
-          onChange={(e) => setSelectedSection(e.target.value)}
-        >
-          {sections.map((sec) => (
-            <option key={sec} value={sec}>
-              {sec}
-            </option>
-          ))}
-        </select>
+      {/* ✅ Search + Section Filter */}
+      <div className="mb-6 flex flex-wrap gap-4 items-center">
+        {/* 🔍 Search Box */}
+        <input
+          type="text"
+          placeholder="Search by name, URN, or CRN..."
+          className="border border-gray-300 rounded-xl px-4 py-2 w-72 focus:ring-2 focus:ring-indigo-400 outline-none"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+
+        {/* 🧩 Section Dropdown */}
+        <div className="flex gap-2 items-center">
+          <span className="font-medium text-gray-700">Filter by Section:</span>
+          <select
+            className="border border-gray-300 rounded-xl px-4 py-2"
+            value={selectedSection}
+            onChange={(e) => setSelectedSection(e.target.value)}
+          >
+            {sections.map((sec) => (
+              <option key={sec} value={sec}>
+                {sec}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
+      {/* ✅ Table */}
       {filteredStudents.length === 0 ? (
         <p>No students found for this selection.</p>
       ) : (

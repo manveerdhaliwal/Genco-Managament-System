@@ -20,7 +20,7 @@ interface StudentData {
   admissionDate: string;
   passingYear: string;
   advisorName: string;
-  year: string;   // ✅ ADDED YEAR
+  year: string; // ✅ ADDED YEAR
 }
 
 const years = ["Final", "3rd", "2nd"];
@@ -33,6 +33,7 @@ export default function TeacherStudentInfoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<StudentData | null>(null);
+  const [searchQuery, setSearchQuery] = useState(""); // ✅ Search state added
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -62,8 +63,7 @@ export default function TeacherStudentInfoPage() {
               : "N/A",
             passingYear: s.passingYear || "N/A",
             advisorName: s.advisor?.name || "N/A",
-
-            year: String(s.student?.year || ""),  // ✅ SAVE YEAR HERE
+            year: String(s.student?.year || ""), // ✅ SAVE YEAR HERE
           }));
 
           setStudents(mapped);
@@ -90,10 +90,17 @@ export default function TeacherStudentInfoPage() {
 
   const activeYear = selectedYear ? yearMap[selectedYear] : "";
 
-  // ✅ Apply year filtering FIRST then section filter
+  // ✅ Apply filters: year + section + search
   const filteredStudents = students
     .filter((s) => (selectedYear ? s.year === activeYear : true))
     .filter((s) => selectedSection === "All" || s.section === selectedSection)
+    .filter((s) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        s.name?.toLowerCase().includes(query) ||
+        s.urn?.toLowerCase().includes(query)
+      );
+    })
     .sort((a, b) => a.urn.localeCompare(b.urn));
 
   if (loading) return <p className="p-6">Loading students...</p>;
@@ -102,6 +109,7 @@ export default function TeacherStudentInfoPage() {
   return (
     <div className="min-h-screen p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
+        {/* 🔙 Back to Teacher Dashboard */}
         <Link
           href={`/dashboard/teacher`}
           className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
@@ -119,6 +127,7 @@ export default function TeacherStudentInfoPage() {
           </svg>
         </Link>
 
+        {/* Year Selection */}
         {!selectedYear ? (
           <>
             <h1 className="text-3xl font-bold text-indigo-700 mb-4">Select Year</h1>
@@ -144,6 +153,7 @@ export default function TeacherStudentInfoPage() {
                 onClick={() => {
                   setSelectedYear(null);
                   setSelectedSection("All");
+                  setSearchQuery("");
                 }}
                 className="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-300 transition"
               >
@@ -151,20 +161,32 @@ export default function TeacherStudentInfoPage() {
               </button>
             </div>
 
-            {/* Section Filter */}
-            <div className="mb-4 flex gap-4 items-center">
-              <span className="font-medium text-gray-700">Filter by Section:</span>
-              <select
-                className="border border-gray-300 rounded-xl px-4 py-2"
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-              >
-                {sections.map((sec) => (
-                  <option key={sec} value={sec}>
-                    {sec}
-                  </option>
-                ))}
-              </select>
+            {/* 🔍 Search + Section Filter */}
+            <div className="mb-4 flex flex-wrap gap-4 items-center">
+              {/* Search */}
+              <input
+                type="text"
+                placeholder="Search by name or URN..."
+                className="border border-gray-300 rounded-xl px-4 py-2 w-72 focus:ring-2 focus:ring-indigo-400 outline-none"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+
+              {/* Section Filter */}
+              <div className="flex gap-2 items-center">
+                <span className="font-medium text-gray-700">Filter by Section:</span>
+                <select
+                  className="border border-gray-300 rounded-xl px-4 py-2"
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                >
+                  {sections.map((sec) => (
+                    <option key={sec} value={sec}>
+                      {sec}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Table */}
@@ -181,22 +203,33 @@ export default function TeacherStudentInfoPage() {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredStudents.map((student) => (
-                    <tr key={student._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-800">{student.urn}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{student.name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{student.section}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{student.category}</td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => setSelectedStudent(student)}
-                          className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700 transition"
-                        >
-                          View
-                        </button>
+                  {filteredStudents.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="text-center py-4 text-gray-500 italic"
+                      >
+                        No students found.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredStudents.map((student) => (
+                      <tr key={student._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-800">{student.urn}</td>
+                        <td className="px-6 py-4 text-sm text-gray-800">{student.name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-800">{student.section}</td>
+                        <td className="px-6 py-4 text-sm text-gray-800">{student.category}</td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => setSelectedStudent(student)}
+                            className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700 transition"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -232,7 +265,6 @@ export default function TeacherStudentInfoPage() {
                 <p className="md:col-span-2"><strong>Permanent Address:</strong> {selectedStudent.permanentAddress}</p>
                 <p className="md:col-span-2"><strong>Advisor:</strong> {selectedStudent.advisorName}</p>
               </div>
-
             </div>
           </div>
         )}

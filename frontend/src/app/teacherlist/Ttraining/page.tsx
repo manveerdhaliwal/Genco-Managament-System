@@ -9,6 +9,7 @@ interface TrainingEntry {
   _id: string;
   studentName: string;
   urn: string;
+  crn?: string; // ✅ Optional (for future if added)
   year: string;
   section: string;
   trainingField: TrainingField;
@@ -39,6 +40,7 @@ export default function TeacherTrainingPage() {
   const [loading, setLoading] = useState(true);
   const [selectedPreview, setSelectedPreview] = useState<TrainingEntry | null>(null);
   const [trainings, setTrainings] = useState<TrainingEntry[]>([]);
+  const [searchTerm, setSearchTerm] = useState(""); // ✅ Search state
 
   // ✅ Fetch all training records from backend
   useEffect(() => {
@@ -49,52 +51,69 @@ export default function TeacherTrainingPage() {
           withCredentials: true,
         });
         if (res.data.success) {
-         const mapped = res.data.data.map((t: any) => {
-  return {
-    _id: t._id,
-    studentName: t.student?.name || "N/A",
-    urn: t.student?.URN || "N/A",
-    section: t.student?.section || "N/A",
-    year: String(t.student?.year || ""),
-    trainingField: t.trainingField,
-    organisationName: t.organisationName,
-    organisationDetails: t.organisationDetails,
-    organisationSupervisor: t.organisationSupervisor,
-    fieldOfWork: t.fieldOfWork,
-    projectsMade: t.projectsMade,
-    projectDescription: t.projectDescription,
-    trainingDuration: t.trainingDuration,
-    certificateAwarded: t.certificateAwarded,
-    certificatepdf: t.certificatepdf
-  ? t.certificatepdf.replace("/upload/", "/upload/fl_disposition:inline/")
-  : "",
-
-  };
-});
+          const mapped = res.data.data.map((t: any) => {
+            return {
+              _id: t._id,
+              studentName: t.student?.name || "N/A",
+              urn: t.student?.URN || "N/A",
+              crn: t.student?.CRN || "", // ✅ Added
+              section: t.student?.section || "N/A",
+              year: String(t.student?.year || ""),
+              trainingField: t.trainingField,
+              organisationName: t.organisationName,
+              organisationDetails: t.organisationDetails,
+              organisationSupervisor: t.organisationSupervisor,
+              fieldOfWork: t.fieldOfWork,
+              projectsMade: t.projectsMade,
+              projectDescription: t.projectDescription,
+              trainingDuration: t.trainingDuration,
+              certificateAwarded: t.certificateAwarded,
+              certificatepdf: t.certificatepdf
+                ? t.certificatepdf.replace("/upload/", "/upload/fl_disposition:inline/")
+                : "",
+            };
+          });
 
           setTrainings(mapped);
         }
       } catch (err) {
         console.log("Error fetching trainings:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchTrainings();
   }, []);
 
-  // ✅ Apply filters
+  // ✅ Apply filters (year, section, search)
   const filteredTrainings = trainings
     .filter((t) => {
       if (!selectedYear) return true;
       return String(t.year) === yearMap[selectedYear];
     })
     .filter((t) => selectedSection === "All" || t.section === selectedSection)
+    .filter((t) => {
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return (
+        t.studentName.toLowerCase().includes(term) ||
+        t.urn.toLowerCase().includes(term) ||
+        (t.crn && t.crn.toLowerCase().includes(term))
+      );
+    })
     .sort((a, b) => a.urn.localeCompare(b.urn));
+
+  if (loading)
+    return (
+      <div className="flex justify-center items-center min-h-screen text-gray-600">
+        Loading training records...
+      </div>
+    );
 
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        
         {/* BACK BUTTON */}
         <Link
           href={`/dashboard/teacher`}
@@ -134,6 +153,7 @@ export default function TeacherTrainingPage() {
                 onClick={() => {
                   setSelectedYear(null);
                   setSelectedSection("All");
+                  setSearchTerm("");
                 }}
                 className="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-300 transition"
               >
@@ -141,20 +161,31 @@ export default function TeacherTrainingPage() {
               </button>
             </div>
 
-            {/* SECTION FILTER */}
-            <div className="mb-4 flex gap-4 items-center">
-              <span className="font-medium text-gray-700">Filter by Section:</span>
-              <select
-                className="border border-gray-300 rounded-xl px-4 py-2"
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-              >
-                {sections.map((sec) => (
-                  <option key={sec} value={sec}>
-                    {sec}
-                  </option>
-                ))}
-              </select>
+            {/* SECTION FILTER + SEARCH */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-gray-700">Section:</span>
+                <select
+                  className="border border-gray-300 rounded-xl px-4 py-2"
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                >
+                  {sections.map((sec) => (
+                    <option key={sec} value={sec}>
+                      {sec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* ✅ Search Box */}
+              <input
+                type="text"
+                placeholder="Search by Name, URN, or CRN"
+                className="border border-gray-300 rounded-xl px-4 py-2 flex-1 focus:ring-2 focus:ring-indigo-400 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
 
             {/* TABLE */}
@@ -172,25 +203,32 @@ export default function TeacherTrainingPage() {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredTrainings.map((t) => (
-                    <tr key={t._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">{t.urn}</td>
-                      <td className="px-6 py-4">{t.studentName}</td>
-                      <td className="px-6 py-4">{t.section}</td>
-                      <td className="px-6 py-4">{t.trainingField}</td>
-                      <td className="px-6 py-4">{t.organisationName}</td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => setSelectedPreview(t)}
-                          className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700"
-                        >
-                          View
-                        </button>
+                  {filteredTrainings.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-6 text-gray-500">
+                        No matching records found.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredTrainings.map((t) => (
+                      <tr key={t._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">{t.urn}</td>
+                        <td className="px-6 py-4">{t.studentName}</td>
+                        <td className="px-6 py-4">{t.section}</td>
+                        <td className="px-6 py-4">{t.trainingField}</td>
+                        <td className="px-6 py-4">{t.organisationName}</td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => setSelectedPreview(t)}
+                            className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
-
               </table>
             </div>
           </>
@@ -227,37 +265,32 @@ export default function TeacherTrainingPage() {
                 </p>
               </div>
 
-              {/* ✅ Cloudinary PDF */}
-   {selectedPreview.certificatepdf && (
-  <div className="mt-4">
-    <p className="font-medium text-indigo-700 mb-2">Certificate Preview:</p>
+              {/* ✅ Certificate PDF */}
+              {selectedPreview.certificatepdf && (
+                <div className="mt-4">
+                  <p className="font-medium text-indigo-700 mb-2">Certificate Preview:</p>
+                  <iframe
+                    src={selectedPreview.certificatepdf}
+                    className="w-full h-80 border rounded-lg"
+                    title="Certificate PDF"
+                  ></iframe>
 
-    <iframe
-      src={selectedPreview.certificatepdf}
-      className="w-full h-80 border rounded-lg"
-      title="Certificate PDF"
-    ></iframe>
-
-    {/* ✅ DOWNLOAD BUTTON */}
-    <a
-      href={selectedPreview.certificatepdf.replace(
-        "/upload/fl_disposition:inline/",
-        "/upload/fl_attachment:certificate/"
-      )}
-      download
-      target="_blank"
-      className="mt-3 inline-block bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700"
-    >
-      Download Certificate
-    </a>
-  </div>
-)}
-
-
+                  <a
+                    href={selectedPreview.certificatepdf.replace(
+                      "/upload/fl_disposition:inline/",
+                      "/upload/fl_attachment:certificate/"
+                    )}
+                    download
+                    target="_blank"
+                    className="mt-3 inline-block bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700"
+                  >
+                    Download Certificate
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

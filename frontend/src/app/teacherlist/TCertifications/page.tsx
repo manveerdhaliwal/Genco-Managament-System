@@ -11,7 +11,7 @@ interface CertificateEntry {
   type: CertificateType;
   eventName: string;
   date: string;
-  certificateUrl: string; // ✅ correctly maps from backend
+  certificateUrl: string;
   studentName: string;
   urn: string;
   section: string;
@@ -32,6 +32,7 @@ export default function TeacherCertificatePage() {
   const [selectedSection, setSelectedSection] = useState("All");
   const [certificates, setCertificates] = useState<CertificateEntry[]>([]);
   const [selectedPreview, setSelectedPreview] = useState<CertificateEntry | null>(null);
+  const [searchQuery, setSearchQuery] = useState(""); // ✅ NEW
 
   // ✅ Fetch all certificates from backend
   useEffect(() => {
@@ -47,16 +48,12 @@ export default function TeacherCertificatePage() {
             type: c.type,
             eventName: c.eventName,
             date: c.date,
-
-            // ✅ Cloudinary inline PDF preview
             certificateUrl: c.certificateUrl
               ? c.certificateUrl.replace(
                   "/upload/",
                   "/upload/fl_content_type:application/pdf/fl_disposition:inline/"
                 )
               : "",
-
-            // ✅ Correct student mapping
             studentName: c.student?.name || "N/A",
             urn: c.student?.URN || "N/A",
             section: c.student?.section || "N/A",
@@ -73,13 +70,16 @@ export default function TeacherCertificatePage() {
     fetchCertificates();
   }, []);
 
-  // ✅ Apply filters
+  // ✅ Apply filters: Year + Section + Search
   const filteredCertificates = certificates
-    .filter((c) => {
-      if (!selectedYear) return true;
-      return c.year === yearMap[selectedYear];
-    })
-    .filter((c) => selectedSection === "All" || c.section === selectedSection)
+    .filter((c) => (!selectedYear ? true : c.year === yearMap[selectedYear]))
+    .filter((c) => (selectedSection === "All" ? true : c.section === selectedSection))
+    .filter((c) =>
+      searchQuery
+        ? [c.studentName, c.urn, c.eventName, c.type]
+            .some((f) => f.toLowerCase().includes(searchQuery.toLowerCase()))
+        : true
+    )
     .sort((a, b) => a.urn.localeCompare(b.urn));
 
   return (
@@ -117,7 +117,7 @@ export default function TeacherCertificatePage() {
         {/* CERTIFICATE TABLE */}
         {selectedYear && (
           <>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-3">
               <h1 className="text-3xl font-bold text-indigo-700 mb-4">
                 {selectedYear} Year Certificates
               </h1>
@@ -125,6 +125,7 @@ export default function TeacherCertificatePage() {
                 onClick={() => {
                   setSelectedYear(null);
                   setSelectedSection("All");
+                  setSearchQuery("");
                 }}
                 className="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-300 transition"
               >
@@ -132,18 +133,29 @@ export default function TeacherCertificatePage() {
               </button>
             </div>
 
-            {/* SECTION FILTER */}
-            <div className="mb-4 flex gap-4 items-center">
-              <span className="font-medium text-gray-700">Filter by Section:</span>
-              <select
-                className="border border-gray-300 rounded-xl px-4 py-2"
-                value={selectedSection}
-                onChange={(e) => setSelectedSection(e.target.value)}
-              >
-                {sections.map((sec) => (
-                  <option key={sec} value={sec}>{sec}</option>
-                ))}
-              </select>
+            {/* SECTION & SEARCH FILTER */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+              <div className="flex gap-4 items-center">
+                <span className="font-medium text-gray-700">Section:</span>
+                <select
+                  className="border border-gray-300 rounded-xl px-4 py-2"
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                >
+                  {sections.map((sec) => (
+                    <option key={sec} value={sec}>{sec}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* ✅ Search bar */}
+              <input
+                type="text"
+                placeholder="Search by name, URN, event, or type..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="border border-gray-300 rounded-xl px-4 py-2 w-full sm:w-80 focus:ring-2 focus:ring-indigo-400 outline-none"
+              />
             </div>
 
             {/* TABLE */}
@@ -161,24 +173,35 @@ export default function TeacherCertificatePage() {
                 </thead>
 
                 <tbody className="divide-y divide-gray-200">
-                  {filteredCertificates.map((c) => (
-                    <tr key={c._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">{c.urn}</td>
-                      <td className="px-6 py-4">{c.studentName}</td>
-                      <td className="px-6 py-4">{c.section}</td>
-                      <td className="px-6 py-4">{c.type}</td>
-                      <td className="px-6 py-4">{c.eventName}</td>
+                  {filteredCertificates.length > 0 ? (
+                    filteredCertificates.map((c) => (
+                      <tr key={c._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">{c.urn}</td>
+                        <td className="px-6 py-4">{c.studentName}</td>
+                        <td className="px-6 py-4">{c.section}</td>
+                        <td className="px-6 py-4 capitalize">{c.type}</td>
+                        <td className="px-6 py-4">{c.eventName}</td>
 
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => setSelectedPreview(c)}
-                          className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700"
-                        >
-                          View
-                        </button>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => setSelectedPreview(c)}
+                            className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="text-center py-6 text-gray-500 italic"
+                      >
+                        No results found.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -207,14 +230,11 @@ export default function TeacherCertificatePage() {
               {selectedPreview.certificateUrl && (
                 <div className="mt-4">
                   <p className="font-medium text-indigo-700 mb-2">Certificate:</p>
-
                   <embed
                     src={selectedPreview.certificateUrl}
                     type="application/pdf"
                     className="w-full h-80 border rounded-lg"
                   />
-
-                  {/* ✅ Download original (not inline manipulated) */}
                   <a
                     href={selectedPreview.certificateUrl.replace(
                       "/fl_content_type:application/pdf/fl_disposition:inline/",
