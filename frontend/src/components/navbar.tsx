@@ -34,16 +34,16 @@ const Navbar = () => {
         <div className='flex items-center justify-between p-4'>
             <div className="flex items-center gap-6 justify-end w-full">
                 
-                <div className="bg-white rounded w-7 h-7 flex items-center justify-center cursor-pointer">
+                {/* <div className="bg-white rounded w-7 h-7 flex items-center justify-center cursor-pointer">
                     <Image src="/message.png" alt="" width={20} height={20}/>
-                </div>
+                </div> */}
 
-                <div className="bg-white rounded w-7 h-7 flex items-center justify-center cursor-pointer relative">
+                {/* <div className="bg-white rounded w-7 h-7 flex items-center justify-center cursor-pointer relative">
                     <Image src="/announcement.png" alt="" width={20} height={20}/>
                     <div className="absolute -top-3 -right-3 w-5 flex items-center justify-center bg-purple-500 text-white rounded-full text-xs">
                         1
                     </div>
-                </div>
+                </div> */}
 
                 {/* ✅ Dynamic Data */}
                 <div className="flex flex-col">

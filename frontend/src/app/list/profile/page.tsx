@@ -66,12 +66,12 @@ const ProfileSection = () => {
       </Link>
 
       <div className="flex justify-end mb-6">
-        <button
+        {/* <button
           onClick={() => alert("Logging out...")}
           className="px-5 py-2 rounded-xl bg-red-500 text-white font-semibold shadow hover:bg-red-600 transition"
         >
           Logout
-        </button>
+        </button> */}
       </div>
 
       <div className="max-w-5xl mx-auto bg-white shadow-2xl rounded-2xl p-8 grid md:grid-cols-3 gap-8">
