@@ -11,7 +11,7 @@ type DutyLeave = {
     name: string;
     CRN: string;
     URN: string;
-    branch: string | { _id: string; name: string }; // Can be string or object
+    branch: string | { _id: string; name: string };
     year: string;
     section?: string;
   };
@@ -25,17 +25,17 @@ type DutyLeave = {
   reason: string;
   certificate_url?: string;
   advisor_approval: "Pending" | "Approved" | "Rejected";
-  hod_approval: "Pending" | "Approved" | "Rejected";
+  // HOD approval removed from logic
   advisor_remarks?: string;
-  hod_remarks?: string;
   overall_status: string;
   createdAt: string;
 };
 
-export default function TeacherDutyLeaveApproval() {
+export default function AdvisorDutyLeaveApproval() {
   const [leaves, setLeaves] = useState<DutyLeave[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<"advisor" | "hod">("advisor");
+  // Role is fixed to 'advisor'
+  const userRole: "advisor" = "advisor"; 
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const [yearFilter, setYearFilter] = useState<string>("all");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
@@ -59,29 +59,14 @@ export default function TeacherDutyLeaveApproval() {
   };
 
   useEffect(() => {
-    fetchUserRole();
+    // Removed fetchUserRole as role is fixed
     fetchDutyLeaves();
   }, []);
-
-  const fetchUserRole = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/teacher/profile", {
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUserRole(data.role === "hod" ? "hod" : "advisor");
-      }
-    } catch (err) {
-      console.error("Error fetching user role:", err);
-    }
-  };
 
   const fetchDutyLeaves = async () => {
     try {
       const token = localStorage.getItem("token");
+      // Use the teacher endpoint, assuming it fetches leaves relevant to the logged-in user (advisor/mentor)
       const res = await fetch("http://localhost:5000/api/duty-leave/teacher", {
         headers: { Authorization: `Bearer ${token}` },
         credentials: "include",
@@ -122,6 +107,7 @@ export default function TeacherDutyLeaveApproval() {
       const token = localStorage.getItem("token");
       const payload = {
         leaveId: remarksModal.leaveId,
+        // Only advisor fields are included in the payload
         advisor_approval: remarksModal.action,
         advisor_remarks: remarksModal.remarks,
       };
@@ -174,7 +160,7 @@ export default function TeacherDutyLeaveApproval() {
     const steps = [
       { label: "Submitted", status: "complete" },
       {
-        label: "Advisor",
+        label: "Advisor Approval",
         status:
           leave.advisor_approval === "Approved"
             ? "complete"
@@ -182,21 +168,11 @@ export default function TeacherDutyLeaveApproval() {
             ? "rejected"
             : "pending",
       },
-      {
-        label: "HoD",
-        status:
-          leave.hod_approval === "Approved"
-            ? "complete"
-            : leave.hod_approval === "Rejected"
-            ? "rejected"
-            : leave.advisor_approval === "Approved"
-            ? "pending"
-            : "inactive",
-      },
+      // HOD step removed
     ];
 
     return (
-      <div className="flex items-center justify-between mt-4 mb-2">
+      <div className="flex items-center justify-start mt-4 mb-2 max-w-sm">
         {steps.map((step, index) => (
           <div key={index} className="flex items-center flex-1">
             <div className="flex flex-col items-center">
@@ -219,7 +195,7 @@ export default function TeacherDutyLeaveApproval() {
                   ? "⏳"
                   : index + 1}
               </div>
-              <span className="text-xs mt-1 font-medium">{step.label}</span>
+              <span className="text-xs mt-1 font-medium text-center max-w-16">{step.label}</span>
             </div>
             {index < steps.length - 1 && (
               <div
@@ -242,16 +218,14 @@ export default function TeacherDutyLeaveApproval() {
 
   // Apply filters
   const filteredLeaves = leaves.filter((leave) => {
-    const relevantStatus = userRole === "advisor" ? leave.advisor_approval : leave.hod_approval;
+    const relevantStatus = leave.advisor_approval; // Always advisor approval
 
     if (filter === "pending" && relevantStatus !== "Pending") return false;
     if (filter === "approved" && relevantStatus !== "Approved") return false;
     if (filter === "rejected" && relevantStatus !== "Rejected") return false;
 
-    if (userRole === "hod" && filter === "pending" && leave.advisor_approval !== "Approved") {
-      return false;
-    }
-
+    // HOD specific filter removed
+    
     if (yearFilter !== "all" && leave.student.year !== yearFilter) return false;
     if (sectionFilter !== "all" && leave.student.section !== sectionFilter) return false;
 
@@ -277,11 +251,7 @@ export default function TeacherDutyLeaveApproval() {
       {/* Back Button */}
       <Link
         href="/dashboard/teacher"
-        className={`mb-4 inline-flex items-center justify-center w-10 h-10 text-white rounded-full shadow transition duration-200 ${
-          userRole === "hod"
-            ? "bg-indigo-500 hover:bg-indigo-600"
-            : "bg-green-500 hover:bg-green-600"
-        }`}
+        className="mb-4 inline-flex items-center justify-center w-10 h-10 text-white rounded-full shadow transition duration-200 bg-green-500 hover:bg-green-600"
         aria-label="Go back"
       >
         <svg
@@ -299,12 +269,10 @@ export default function TeacherDutyLeaveApproval() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">
-            {userRole === "hod" ? "HOD Duty Leave Approvals" : "Advisor Duty Leave Approvals"}
+            Advisor Duty Leave Approvals
           </h1>
           <p className="text-gray-600 mt-1">
-            {userRole === "hod"
-              ? "Review and approve duty leaves for your department"
-              : "Review and approve duty leaves for your mentee students"}
+            Review and approve duty leaves for your mentee students
           </p>
         </div>
       </div>
@@ -421,9 +389,7 @@ export default function TeacherDutyLeaveApproval() {
           <p className="text-yellow-800 text-sm">Pending</p>
           <p className="text-2xl font-bold text-yellow-800">
             {
-              leaves.filter((l) =>
-                userRole === "advisor" ? l.advisor_approval === "Pending" : l.hod_approval === "Pending"
-              ).length
+              leaves.filter((l) => l.advisor_approval === "Pending").length
             }
           </p>
         </div>
@@ -431,9 +397,7 @@ export default function TeacherDutyLeaveApproval() {
           <p className="text-green-800 text-sm">Approved</p>
           <p className="text-2xl font-bold text-green-800">
             {
-              leaves.filter((l) =>
-                userRole === "advisor" ? l.advisor_approval === "Approved" : l.hod_approval === "Approved"
-              ).length
+              leaves.filter((l) => l.advisor_approval === "Approved").length
             }
           </p>
         </div>
@@ -441,9 +405,7 @@ export default function TeacherDutyLeaveApproval() {
           <p className="text-red-800 text-sm">Rejected</p>
           <p className="text-2xl font-bold text-red-800">
             {
-              leaves.filter((l) =>
-                userRole === "advisor" ? l.advisor_approval === "Rejected" : l.hod_approval === "Rejected"
-              ).length
+              leaves.filter((l) => l.advisor_approval === "Rejected").length
             }
           </p>
         </div>
@@ -463,13 +425,8 @@ export default function TeacherDutyLeaveApproval() {
           </div>
         ) : (
           filteredLeaves.map((leave) => {
-            const relevantStatus =
-              userRole === "advisor" ? leave.advisor_approval : leave.hod_approval;
-            const canApprove =
-              (userRole === "advisor" && leave.advisor_approval === "Pending") ||
-              (userRole === "hod" &&
-                leave.hod_approval === "Pending" &&
-                leave.advisor_approval === "Approved");
+            const relevantStatus = leave.advisor_approval;
+            const canApprove = relevantStatus === "Pending";
 
             return (
               <div
@@ -493,11 +450,6 @@ export default function TeacherDutyLeaveApproval() {
                           <p className="text-sm text-gray-600 col-span-2">
                             Branch: {getBranchName(leave.student.branch)}
                           </p>
-                          {leave.advisor && userRole === "hod" && (
-                            <p className="text-sm text-gray-600 col-span-2">
-                              Advisor: {leave.advisor.name}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -529,7 +481,7 @@ export default function TeacherDutyLeaveApproval() {
                       )}
                     </div>
 
-                    {/* Progress Steps */}
+                    {/* Progress Steps (Simplified) */}
                     {getProgressSteps(leave)}
 
                     {/* Remarks Display */}
@@ -537,21 +489,12 @@ export default function TeacherDutyLeaveApproval() {
                       <div className="mt-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
                         <p className="text-sm font-semibold text-blue-900 flex items-center gap-2">
                           <MessageSquare className="w-4 h-4" />
-                          Advisor Remarks:
+                          Your Remarks:
                         </p>
                         <p className="text-sm text-blue-800">{leave.advisor_remarks}</p>
                       </div>
                     )}
-
-                    {leave.hod_remarks && (
-                      <div className="mt-3 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                        <p className="text-sm font-semibold text-purple-900 flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4" />
-                          HoD Remarks:
-                        </p>
-                        <p className="text-sm text-purple-800">{leave.hod_remarks}</p>
-                      </div>
-                    )}
+                    {/* HOD Remarks display removed */}
                   </div>
 
                   {/* Approval Section */}
@@ -559,15 +502,9 @@ export default function TeacherDutyLeaveApproval() {
                     <div className="space-y-2">
                       <div>
                         <p className="text-xs text-gray-500 mb-1">
-                          Advisor Approval {userRole === "advisor" && "(You)"}
+                          Your Approval Status
                         </p>
                         {getStatusBadge(leave.advisor_approval)}
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">
-                          HOD Approval {userRole === "hod" && "(You)"}
-                        </p>
-                        {getStatusBadge(leave.hod_approval)}
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Overall Status</p>

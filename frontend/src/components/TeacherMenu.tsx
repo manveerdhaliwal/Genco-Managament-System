@@ -15,27 +15,9 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "/teacher.png",
-        label: "Teachers",
-        href: "/list/teachers",
-        visible: ["admin", "teacher"],
-      },
-      {
         icon: "/calendar.png",
         label: "Duty Leave Approvals",
         href: "/dashboard/teacher/dutyleaveapproval",
-        visible: ["admin", "teacher"],
-      },
-      {
-        icon: "/student.png",
-        label: "Students",
-        href: "/list/students",
-        visible: ["admin", "teacher"],
-      },
-      {
-        icon: "/parent.png",
-        label: "Parents",
-        href: "/list/parents",
         visible: ["admin", "teacher"],
       },
       {
@@ -47,12 +29,6 @@ const menuItems = [
       {
         icon: "/result.png",
         label: "Results",
-        href: "/",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/attendance.png",
-        label: "Attendance",
         href: "/",
         visible: ["admin", "teacher", "student", "parent"],
       },
