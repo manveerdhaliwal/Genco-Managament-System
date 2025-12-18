@@ -41,7 +41,8 @@ const signup = async (req, res) => {
 
     // 🔍 Role-based validation
     if (role === "student") {
-      if (!branch || !year || !CRN || !section) { // <-- Validate section
+      if (!branch || !year || !CRN || !section) {
+        // <-- Validate section
         return res.status(400).json({
           success: false,
           message: "Branch, Year, Section, and CRN are required for students!",
@@ -195,9 +196,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -241,13 +240,17 @@ const getMe = async (req, res) => {
     let user;
 
     if (userRole === "student") {
-      user = await Student.findById(userId).select("-password");
+      user = await Student.findById(userId)
+        .select("-password")
+        .populate("branch", "name");
     } else if (userRole === "teacher") {
       user = await Teacher.findById(userId).select("-password");
     }
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.json({
@@ -259,6 +262,5 @@ const getMe = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 module.exports = { signup, login, logout, authMiddleware, getMe };
