@@ -54,19 +54,6 @@ const menuItems = [
         href: "/list/StudentInfo",
         visible: ["admin", "teacher", "student", "parent"],
       },
-
-      {
-        icon: "/result.png",
-        label: "Results",
-        href: "/list/results",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/attendance.png",
-        label: "Attendance",
-        href: "/list/attendance",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
             {
         icon: "/assignment.png",
         label: "Research Paper",

@@ -17,9 +17,9 @@ export default function HomePage() {
 
         {/* Desktop Links */}
         <div className="hidden md:flex gap-6">
-          <Link href="/" className="hover:text-blue-600">Home</Link>
+          {/* <Link href="/" className="hover:text-blue-600">Home</Link>
           <Link href="/about" className="hover:text-blue-600">About</Link>
-          <Link href="/contact" className="hover:text-blue-600">Contact</Link>
+          <Link href="/contact" className="hover:text-blue-600">Contact</Link> */}
           <Link
             href="/sign-up"
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -47,27 +47,39 @@ export default function HomePage() {
           <img src="/student.png" alt="student" className="w-16 h-16 mb-4" />
           <h2 className="text-lg md:text-xl font-semibold mb-2">Students</h2>
           <p className="text-gray-600">Access training forms, resources, and updates.</p>
-          <Link href="/sign-in" className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Enter as Student
-          </Link>
+         <Link
+  href="/sign-in?role=student"
+  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+>
+  Enter as Student
+</Link>
+
         </div>
 
         <div className="bg-white shadow-lg rounded-2xl p-6 flex flex-col items-center text-center hover:shadow-xl transition">
           <img src="/teacher.png" alt="teacher" className="w-16 h-16 mb-4" />
           <h2 className="text-lg md:text-xl font-semibold mb-2">Teachers</h2>
           <p className="text-gray-600">Manage student info and oversee training programs.</p>
-          <Link href="/sign-in" className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-            Enter as Teacher
-          </Link>
+          <Link
+  href="/sign-in?role=teacher"
+  className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+>
+  Enter as Teacher
+</Link>
+
         </div>
 
         <div className="bg-white shadow-lg rounded-2xl p-6 flex flex-col items-center text-center hover:shadow-xl transition sm:col-span-2 md:col-span-1">
           <img src="/profile.png" alt="admin" className="w-16 h-16 mb-4" />
           <h2 className="text-lg md:text-xl font-semibold mb-2">Admins</h2>
           <p className="text-gray-600">Full control of system users and operations.</p>
-          <Link href="/sign-in" className="mt-4 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900">
-            Enter as Admin
-          </Link>
+          <Link
+  href="/sign-in?role=admin"
+  className="mt-4 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900"
+>
+  Enter as Admin
+</Link>
+
         </div>
       </section>
 

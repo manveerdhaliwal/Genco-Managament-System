@@ -14,7 +14,9 @@ const getAdvisorsForStudent = async (req, res) => {
 
     console.log("Student found:", student);
 
-    const advisors = await Teacher.find({ branch: student.branch._id }).select("name email _id");
+    const advisors = await Teacher.find({ branch: student.branch._id }).select(
+      "name email _id"
+    );
 
     console.log("Advisors fetched:", advisors);
 
@@ -31,11 +33,15 @@ const getStudentsByBranch = async (req, res) => {
     const teacher = await Teacher.findById(teacherId);
 
     if (!teacher) {
-      return res.status(404).json({ success: false, message: "Teacher not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Teacher not found" });
     }
 
     if (!teacher.branch) {
-      return res.status(400).json({ success: false, message: "Teacher has no branch assigned" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Teacher has no branch assigned" });
     }
 
     const students = await Student.find({ branch: teacher.branch._id }).select(
@@ -47,7 +53,6 @@ const getStudentsByBranch = async (req, res) => {
     }
 
     res.json({ success: true, students });
-
   } catch (error) {
     console.error("Fetch students error:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -64,7 +69,7 @@ const getMyMentees = async (req, res) => {
       .populate({
         path: "student",
         select: "name email CRN URN section year branch",
-        populate: { path: "branch", select: "name" }
+        populate: { path: "branch", select: "name" },
       })
       .lean();
 
@@ -73,7 +78,7 @@ const getMyMentees = async (req, res) => {
     }
 
     // Extract student data
-    const mentees = studentInfos.map(info => ({
+    const mentees = studentInfos.map((info) => ({
       ...info.student,
       studentInfo: {
         fatherName: info.fatherName,
@@ -82,19 +87,18 @@ const getMyMentees = async (req, res) => {
         studentMobile: info.studentMobile,
         fatherMobile: info.fatherMobile,
         motherMobile: info.motherMobile,
-      }
+      },
     }));
 
     res.json({ success: true, mentees });
-
   } catch (error) {
     console.error("Fetch mentees error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-module.exports = { 
-  getStudentsByBranch, 
+module.exports = {
+  getStudentsByBranch,
   getAdvisorsForStudent,
-  getMyMentees 
+  getMyMentees,
 };

@@ -21,12 +21,18 @@ const createTraining = async (req, res) => {
 
     // Upload PDF to Cloudinary if file exists
     if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, "student_trainings");
+      const result = await uploadToCloudinary(
+        req.file.buffer,
+        "student_trainings"
+      );
       certificatepdfUrl = result.secure_url;
     }
 
     // Check if training already exists
-    let existing = await StudentTraining.findOne({ student: studentId, trainingField });
+    let existing = await StudentTraining.findOne({
+      student: studentId,
+      trainingField,
+    });
     if (existing) {
       existing = await StudentTraining.findOneAndUpdate(
         { student: studentId, trainingField },
@@ -44,7 +50,11 @@ const createTraining = async (req, res) => {
         },
         { new: true }
       );
-      return res.json({ success: true, message: "Training updated!", data: existing });
+      return res.json({
+        success: true,
+        message: "Training updated!",
+        data: existing,
+      });
     }
 
     // Create new training
@@ -65,8 +75,9 @@ const createTraining = async (req, res) => {
     await newTraining.save();
     await newTraining.populate("student", "name email role URN section year");
 
-
-    res.status(201).json({ success: true, message: "Training saved!", data: newTraining });
+    res
+      .status(201)
+      .json({ success: true, message: "Training saved!", data: newTraining });
   } catch (error) {
     console.error("Error creating training:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -77,8 +88,9 @@ const createTraining = async (req, res) => {
 const getMyTraining = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const trainings = await StudentTraining.find({ student: studentId }).populate("student", "name email role URN section year")
-;
+    const trainings = await StudentTraining.find({
+      student: studentId,
+    }).populate("student", "name email role URN section year");
     res.json({ success: true, data: trainings });
   } catch (error) {
     console.error(error);
@@ -93,14 +105,20 @@ const updateTraining = async (req, res) => {
     const updates = req.body;
 
     if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, "student_trainings");
+      const result = await uploadToCloudinary(
+        req.file.buffer,
+        "student_trainings"
+      );
       updates.certificatepdf = result.secure_url;
     }
 
-    const updated = await StudentTraining.findByIdAndUpdate(id, updates, { new: true }).populate("student", "name email role URN section year")
-;
-
-    if (!updated) return res.status(404).json({ success: false, message: "Training not found" });
+    const updated = await StudentTraining.findByIdAndUpdate(id, updates, {
+      new: true,
+    }).populate("student", "name email role URN section year");
+    if (!updated)
+      return res
+        .status(404)
+        .json({ success: false, message: "Training not found" });
 
     res.json({ success: true, message: "Training updated!", data: updated });
   } catch (error) {
@@ -112,8 +130,10 @@ const updateTraining = async (req, res) => {
 // 🔹 Teacher/Admin: get all trainings
 const getAllTraining = async (req, res) => {
   try {
-    const trainings = await StudentTraining.find().populate("student", "name email role URN section year")
-;
+    const trainings = await StudentTraining.find().populate(
+      "student",
+      "name email role URN section year"
+    );
     res.json({ success: true, data: trainings });
   } catch (error) {
     console.error(error);
@@ -125,8 +145,9 @@ const getAllTraining = async (req, res) => {
 const getTrainingByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const trainings = await StudentTraining.find({ student: studentId }).populate("student", "name email role URN section year")
-;
+    const trainings = await StudentTraining.find({
+      student: studentId,
+    }).populate("student", "name email role URN section year");
     res.json({ success: true, data: trainings });
   } catch (error) {
     console.error(error);

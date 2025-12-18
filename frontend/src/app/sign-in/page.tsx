@@ -3,11 +3,28 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "teacher" | "student">("student");
+const searchParams = useSearchParams();
+
+const [role, setRole] = useState<"admin" | "teacher" | "student">("student");
+
+useEffect(() => {
+  const roleFromUrl = searchParams.get("role") as
+    | "admin"
+    | "teacher"
+    | "student";
+
+  if (roleFromUrl) {
+    setRole(roleFromUrl);
+  }
+}, [searchParams]);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // 👈 Added
