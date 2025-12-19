@@ -1,121 +1,168 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-interface ProjectData {
+/* ================= TYPES ================= */
+
+type ProjectStatus = "ongoing" | "completed";
+
+interface ProjectEntry {
+  _id: string;
   studentName: string;
   urn: string;
   section: string;
-  projectTitle: string;
-  description: string;
-  guideName: string;
-  status: "ongoing" | "completed";
-  projectLink: string; // GitHub / demo link
+  year: string;
+
+  projectName: string;
+  projectDescription: string;
+  projectGuide: string;
+  projectStatus: ProjectStatus;
+
+  githubRepoUrl?: string;
+  hostedUrl?: string;
 }
 
-const allProjects: ProjectData[] = [
-  {
-    studentName: "Ritika Gupta",
-    urn: "2203542",
-    section: "A",
-    projectTitle: "AI Trip Planner",
-    description: "An AI-powered trip planning app",
-    guideName: "Dr. Sharma",
-    status: "completed",
-    projectLink: "https://github.com/ritika/ai-trip-planner",
-  },
-  {
-    studentName: "John Doe",
-    urn: "2203545",
-    section: "B",
-    projectTitle: "Data Analytics Dashboard",
-    description: "Interactive data visualization dashboard",
-    guideName: "Prof. Verma",
-    status: "ongoing",
-    projectLink: "https://github.com/johndoe/data-dashboard",
-  },
-  {
-    studentName: "Alice Smith",
-    urn: "2203543",
-    section: "B",
-    projectTitle: "Frontend Portfolio",
-    description: "Portfolio website with animations",
-    guideName: "Dr. Kaur",
-    status: "completed",
-    projectLink: "https://github.com/alice/frontend-portfolio",
-  },
-];
+/* ================= CONSTANTS ================= */
 
 const years = ["Final", "3rd", "2nd"];
 const sections = ["All", "A", "B"];
 
-export default function ProjectsPage() {
+const yearMap: Record<string, string> = {
+  Final: "4",
+  "3rd": "3",
+  "2nd": "2",
+};
+
+/* ================= COMPONENT ================= */
+
+export default function TeacherProjectsPage() {
+  const [projects, setProjects] = useState<ProjectEntry[]>([]);
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState("All");
-  const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
+  const [selectedProject, setSelectedProject] = useState<ProjectEntry | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Filter and sort by URN
-  const filteredProjects = allProjects
-    .filter((p) => p.section === selectedSection || selectedSection === "All")
+  /* ================= FETCH PROJECTS ================= */
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+
+        const res = await axios.get(
+          "http://localhost:5000/api/Projects",
+          { withCredentials: true }
+        );
+
+        if (res.data.success) {
+          const mapped: ProjectEntry[] = res.data.data.map((p: any) => ({
+            _id: p._id,
+            studentName: p.student?.name || "N/A",
+            urn: p.student?.URN || "N/A",
+            section: p.student?.section || "N/A",
+            year: String(p.student?.year || ""),
+
+            projectName: p.projectName,
+            projectDescription: p.projectDescription,
+            projectGuide: p.projectGuide,
+            projectStatus: p.projectStatus ?? "ongoing",
+
+            githubRepoUrl: p.githubRepoUrl,
+            hostedUrl: p.hostedUrl,
+          }));
+
+          setProjects(mapped);
+        }
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  /* ================= FILTERS ================= */
+
+  const filteredProjects = projects
+    .filter((p) => {
+      if (!selectedYear) return true;
+      return p.year === yearMap[selectedYear];
+    })
+    .filter((p) => selectedSection === "All" || p.section === selectedSection)
     .sort((a, b) => a.urn.localeCompare(b.urn));
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-gray-600">
+        Loading projects...
+      </div>
+    );
+  }
+
+  /* ================= UI ================= */
 
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
+
+        {/* BACK */}
         <Link
-          href={`/dashboard/teacher`}
-          className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-          aria-label="Go back"
+          href="/dashboard/teacher"
+          className="inline-flex w-10 h-10 items-center justify-center bg-indigo-500 text-white rounded-full hover:bg-indigo-600"
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
-          </svg>
+          ←
         </Link>
 
+        {/* YEAR SELECTION */}
         {!selectedYear && (
           <>
-            <h1 className="text-3xl font-bold text-indigo-700 mb-4">Select Year</h1>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <h1 className="text-3xl font-bold text-indigo-700">
+              Select Year
+            </h1>
+
+            <div className="grid sm:grid-cols-3 gap-6">
               {years.map((year) => (
                 <div
                   key={year}
                   onClick={() => setSelectedYear(year)}
-                  className="cursor-pointer bg-white shadow-lg rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-xl transition"
+                  className="cursor-pointer bg-white p-6 rounded-2xl shadow hover:shadow-xl text-center"
                 >
-                  <h2 className="text-xl font-semibold text-indigo-700">{year} Year</h2>
+                  <h2 className="text-xl font-semibold text-indigo-700">
+                    {year} Year
+                  </h2>
                 </div>
               ))}
             </div>
           </>
         )}
 
+        {/* TABLE */}
         {selectedYear && (
           <>
             <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-indigo-700 mb-4">{selectedYear} Year Projects</h1>
+              <h1 className="text-3xl font-bold text-indigo-700">
+                {selectedYear} Year Projects
+              </h1>
+
               <button
                 onClick={() => {
                   setSelectedYear(null);
                   setSelectedSection("All");
                 }}
-                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-300 transition"
+                className="bg-gray-200 px-4 py-2 rounded-xl"
               >
                 Back
               </button>
             </div>
 
-            {/* Section Filter */}
-            <div className="mb-4 flex gap-4 items-center">
-              <span className="font-medium text-gray-700">Filter by Section:</span>
+            {/* SECTION FILTER */}
+            <div className="flex items-center gap-3">
+              <span className="font-medium">Section:</span>
               <select
-                className="border border-gray-300 rounded-xl px-4 py-2"
+                className="border rounded-xl px-4 py-2"
                 value={selectedSection}
                 onChange={(e) => setSelectedSection(e.target.value)}
               >
@@ -125,69 +172,131 @@ export default function ProjectsPage() {
               </select>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto shadow-md rounded-2xl bg-white">
-              <table className="min-w-full divide-y divide-gray-200">
+            {/* PROJECT TABLE */}
+            <div className="overflow-x-auto bg-white rounded-2xl shadow">
+              <table className="min-w-full divide-y">
                 <thead className="bg-indigo-100">
                   <tr>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">URN</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Student</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Section</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Title</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Guide</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">View</th>
+                    <th className="px-6 py-3">URN</th>
+                    <th className="px-6 py-3">Student</th>
+                    <th className="px-6 py-3">Section</th>
+                    <th className="px-6 py-3">Project</th>
+                    <th className="px-6 py-3">Guide</th>
+                    <th className="px-6 py-3">Status</th>
+                    <th className="px-6 py-3 text-center">View</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredProjects.map((proj, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-800">{proj.urn}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{proj.studentName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{proj.section}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{proj.projectTitle}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{proj.guideName}</td>
-                      <td className="px-6 py-4 text-sm text-gray-800">{proj.status.toUpperCase()}</td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => setSelectedProject(proj)}
-                          className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700 transition"
-                        >
-                          View
-                        </button>
+
+                <tbody>
+                  {filteredProjects.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-6 text-gray-500">
+                        No project records found
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredProjects.map((p) => (
+                      <tr key={p._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">{p.urn}</td>
+                        <td className="px-6 py-4">{p.studentName}</td>
+                        <td className="px-6 py-4">{p.section}</td>
+                        <td className="px-6 py-4">{p.projectName}</td>
+                        <td className="px-6 py-4">{p.projectGuide}</td>
+
+                        {/* STATUS BADGE */}
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              p.projectStatus === "completed"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {p.projectStatus.toUpperCase()}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            onClick={() => setSelectedProject(p)}
+                            className="bg-indigo-600 text-white px-4 py-1 rounded-xl"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </>
         )}
 
-        {/* Popup / Modal */}
+        {/* ================= MODAL ================= */}
         {selectedProject && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-3xl p-4 max-w-4xl w-full relative">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white rounded-3xl p-6 max-w-3xl w-full relative">
               <button
                 onClick={() => setSelectedProject(null)}
-                className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 font-bold text-xl"
+                className="absolute top-3 right-3 text-xl font-bold"
               >
-                &times;
+                ×
               </button>
-              <h2 className="text-xl font-semibold mb-4">{selectedProject.studentName} - {selectedProject.projectTitle}</h2>
-              <p className="mb-2"><strong>URN:</strong> {selectedProject.urn}</p>
-              <p className="mb-2"><strong>Guide:</strong> {selectedProject.guideName}</p>
-              <p className="mb-2"><strong>Status:</strong> {selectedProject.status.toUpperCase()}</p>
-              <p className="mb-2"><strong>Description:</strong> {selectedProject.description}</p>
-              <p className="mb-2">
-                <strong>Project Link:</strong>{" "}
-                <a href={selectedProject.projectLink} target="_blank" className="text-indigo-600 hover:underline">
-                  {selectedProject.projectLink}
-                </a>
-              </p>
+
+              <h2 className="text-xl font-semibold mb-4">
+                {selectedProject.studentName} – {selectedProject.projectName}
+              </h2>
+
+              <div className="space-y-2 text-sm text-gray-700">
+                <p><strong>URN:</strong> {selectedProject.urn}</p>
+                <p><strong>Guide:</strong> {selectedProject.projectGuide}</p>
+                <p>
+                  <strong>Status:</strong>{" "}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      selectedProject.projectStatus === "completed"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}
+                  >
+                    {selectedProject.projectStatus.toUpperCase()}
+                  </span>
+                </p>
+                <p><strong>Description:</strong> {selectedProject.projectDescription}</p>
+
+                {/* GITHUB */}
+                {selectedProject.githubRepoUrl && (
+                  <p>
+                    <strong>GitHub:</strong>{" "}
+                    <a
+                      href={selectedProject.githubRepoUrl}
+                      target="_blank"
+                      className="text-indigo-600 underline"
+                    >
+                      View Repository
+                    </a>
+                  </p>
+                )}
+
+                {/* LIVE DEMO */}
+                {selectedProject.hostedUrl && (
+                  <p>
+                    <strong>Live URL:</strong>{" "}
+                    <a
+                      href={selectedProject.hostedUrl}
+                      target="_blank"
+                      className="text-indigo-600 underline"
+                    >
+                      Open Demo
+                    </a>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

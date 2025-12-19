@@ -1,9 +1,12 @@
+"use client";
+
 import Menu from "@/components/Menu";
 import Navbar from "@/components/navbar";
 import Image from "next/image";
 import Link from "next/link";
+import { withAuth } from "@/lib/withAuth";
 
-export default function DashboardLayout({
+function StudentLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -25,7 +28,7 @@ export default function DashboardLayout({
       {/* RIGHT */}
       <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] flex flex-col">
         <Navbar />
-        
+
         {/* Main content */}
         <div className="flex-1 overflow-y-auto p-4">{children}</div>
 
@@ -36,4 +39,14 @@ export default function DashboardLayout({
       </div>
     </div>
   );
+}
+
+// ✅ EXPORT WRAPPED LAYOUT
+export default function ProtectedStudentLayout(props: {
+  children: React.ReactNode;
+}) {
+  return withAuth({
+    children: <StudentLayout {...props} />,
+    allowedRoles: ["student"],
+  });
 }

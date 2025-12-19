@@ -3,22 +3,55 @@ const Teacher = require("../models/Teacher");
 const Student = require("../models/Student");
 const { uploadToCloudinary } = require("../config/cloudinary");
 
+// Helper function to create safe filenames
+const createSafeFilename = (companyName, studentName, originalName) => {
+  const slugify = (text) =>
+    text.toString().toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^\w\-]+/g, "")
+      .substring(0, 50);
+  
+  const timestamp = Date.now();
+  const extension = originalName.split('.').pop();
+  return `${slugify(companyName)}_${slugify(studentName)}_${timestamp}.${extension}`;
+};
+
 // 🔹 Create Placement (with PDF upload)
 const createPlacement = async (req, res) => {
   try {
     const studentId = req.user.id;
     const { companyName, role, package: pkg, companyDescription, yearOfPlacement } = req.body;
 
+    // Get student info for filename
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
     let offerLetterUrl = "";
 
     // Upload PDF if file exists
     if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, "student_placements");
+      const safeFilename = createSafeFilename(
+        companyName,
+        student.name,
+        req.file.originalname
+      );
+      
+      const result = await uploadToCloudinary(
+        req.file.buffer,
+        safeFilename,
+        "student_placements"
+      );
       offerLetterUrl = result.secure_url;
     }
 
     // Check if placement already exists for this student & company
-    let existing = await StudentPlacement.findOne({ student: studentId, companyName, yearOfPlacement });
+    let existing = await StudentPlacement.findOne({ 
+      student: studentId, 
+      companyName, 
+      yearOfPlacement 
+    });
 
     if (existing) {
       existing = await StudentPlacement.findOneAndUpdate(
@@ -32,7 +65,8 @@ const createPlacement = async (req, res) => {
           offerLetterUrl: offerLetterUrl || existing.offerLetterUrl,
         },
         { new: true }
-      );
+      ).populate("student", "name email role URN section year");
+      
       return res.json({ success: true, message: "Placement updated!", data: existing });
     }
 
@@ -48,7 +82,7 @@ const createPlacement = async (req, res) => {
     });
 
     await newPlacement.save();
-    await newPlacement.populate("student", "name email role URN section year ");
+    await newPlacement.populate("student", "name email role URN section year");
 
     res.status(201).json({ success: true, message: "Placement saved!", data: newPlacement });
   } catch (error) {
@@ -61,7 +95,8 @@ const createPlacement = async (req, res) => {
 const getMyPlacements = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const placements = await StudentPlacement.find({ student: studentId }).populate("student", "name email role URN section year");
+    const placements = await StudentPlacement.find({ student: studentId })
+      .populate("student", "name email role URN section year");
     res.json({ success: true, data: placements });
   } catch (error) {
     console.error(error);
@@ -76,13 +111,30 @@ const updatePlacement = async (req, res) => {
     const updates = req.body;
 
     if (req.file) {
-      const result = await uploadToCloudinary(req.file.buffer, "student_placements");
-      updates.offerLetterUrl = result.secure_url;
+      // Get placement to access student info
+      const placement = await StudentPlacement.findById(id).populate("student", "name");
+      if (placement) {
+        const safeFilename = createSafeFilename(
+          updates.companyName || placement.companyName,
+          placement.student.name,
+          req.file.originalname
+        );
+        
+        const result = await uploadToCloudinary(
+          req.file.buffer,
+          safeFilename,
+          "student_placements"
+        );
+        updates.offerLetterUrl = result.secure_url;
+      }
     }
 
-    const updated = await StudentPlacement.findByIdAndUpdate(id, updates, { new: true }).populate("student", "name email role URN section year");
+    const updated = await StudentPlacement.findByIdAndUpdate(id, updates, { new: true })
+      .populate("student", "name email role URN section year");
 
-    if (!updated) return res.status(404).json({ success: false, message: "Placement not found" });
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Placement not found" });
+    }
 
     res.json({ success: true, message: "Placement updated!", data: updated });
   } catch (error) {
@@ -91,12 +143,7 @@ const updatePlacement = async (req, res) => {
   }
 };
 
-// 🔹 Teacher/Admin: get all placements
 // 🔹 Teacher/Admin: get all placements (same branch only)
-
-
-
-
 const getAllPlacements = async (req, res) => {
   try {
     const teacherId = req.user.id;
@@ -125,26 +172,26 @@ const getAllPlacements = async (req, res) => {
         select: "name URN section year branch",
         populate: { path: "branch", select: "name" },
       })
-      .sort({ date: -1 });
+      .sort({ yearOfPlacement: -1, createdAt: -1 });
 
     if (!placements.length) {
       return res.status(200).json({ success: false, message: "No placements found for your branch" });
     }
 
     res.json({ success: true, data: placements });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-
 // 🔹 Teacher/Admin: get placements of a specific student
 const getPlacementByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const placements = await StudentPlacement.find({ student: studentId }).populate("student", "name email role URN section year");
+    const placements = await StudentPlacement.find({ student: studentId })
+      .populate("student", "name email role URN section year")
+      .sort({ yearOfPlacement: -1 });
     res.json({ success: true, data: placements });
   } catch (error) {
     console.error(error);

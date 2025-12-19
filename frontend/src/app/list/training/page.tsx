@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
 
+// ✅ FIXED: Use Google Drive Viewer for reliable inline viewing
+const getInlineViewUrl = (url: string): string => {
+  if (!url) return "";
+  return `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+};
+
 type TrainingField = "TR101" | "TR102" | "TR103";
 
 interface TrainingData {
@@ -17,7 +23,7 @@ interface TrainingData {
   projectDescription: string;
   trainingDuration: string;
   certificateAwarded: boolean;
-  certificatepdf?: string; // URL from Cloudinary
+  certificatepdf?: string;
 }
 
 export default function TrainingPage() {
@@ -29,7 +35,6 @@ export default function TrainingPage() {
 
   const MAX_FILE_SIZE_MB = 5;
 
-  // Fetch all trainings from backend
   const fetchTrainings = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -138,7 +143,6 @@ export default function TrainingPage() {
         });
       }
 
-      // Refetch all trainings to show full list
       await fetchTrainings();
 
       setFormData({});
@@ -246,18 +250,36 @@ export default function TrainingPage() {
                   <p className="text-sm text-gray-600">Description: {training.projectDescription}</p>
                   <p className="text-sm text-gray-600">Duration: {training.trainingDuration}</p>
                   <p className="text-sm text-gray-600">Certificate Awarded: {training.certificateAwarded ? "Yes" : "No"}</p>
+
+                  {/* ✅ FIXED: Certificate PDF with proper view/download */}
                   {training.certificatepdf && (
-                    <a
-                      href={training.certificatepdf}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-indigo-600 underline text-sm"
-                    >
-                      View PDF
-                    </a>
+                    <div className="flex gap-3 mt-2">
+                      <a
+                        href={getInlineViewUrl(training.certificatepdf)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition"
+                      >
+                        View
+                      </a>
+
+                      <a
+                        href={training.certificatepdf}
+                        download
+                        className="px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                      >
+                        Download
+                      </a>
+                    </div>
                   )}
                 </div>
-                <button onClick={() => handleEdit(index)} className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600">Edit</button>
+
+                <button
+                  onClick={() => handleEdit(index)}
+                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition"
+                >
+                  Edit
+                </button>
               </div>
             ))}
           </div>

@@ -8,25 +8,36 @@ const StudentProjectSchema = new mongoose.Schema(
       required: true,
       autopopulate: true,
     },
+
     projectName: {
       type: String,
       required: true,
       trim: true,
     },
+
     projectDescription: {
       type: String,
       required: true,
       trim: true,
     },
-     projectGuide: {
+
+    projectGuide: {
       type: String,
       required: true,
       trim: true,
     },
+
+    projectStatus: {
+      type: String,
+      enum: ["ongoing", "completed"],
+      default: "ongoing",
+    },
+
     githubRepoUrl: {
       type: String,
       trim: true,
     },
+
     hostedUrl: {
       type: String,
       trim: true,
@@ -35,16 +46,11 @@ const StudentProjectSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound unique index to prevent a student from having duplicate project names
+// Prevent duplicate project names per student
 StudentProjectSchema.index({ student: 1, projectName: 1 }, { unique: true });
 
 try {
   StudentProjectSchema.plugin(require("mongoose-autopopulate"));
-} catch (e) {
-  // mongoose-autopopulate not installed
-}
+} catch (e) {}
 
-const StudentProject = mongoose.model("StudentProject", StudentProjectSchema);
-
-module.exports = StudentProject;
-
+module.exports = mongoose.model("StudentProject", StudentProjectSchema);

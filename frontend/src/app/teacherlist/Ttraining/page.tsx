@@ -3,13 +3,19 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+// ✅ FIXED: Use Google Drive Viewer for reliable inline viewing
+const getInlineViewUrl = (url: string): string => {
+  if (!url) return "";
+  return `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+};
+
 type TrainingField = "TR101" | "TR102" | "TR103";
 
 interface TrainingEntry {
   _id: string;
   studentName: string;
   urn: string;
-  crn?: string; // ✅ Optional (for future if added)
+  crn?: string;
   year: string;
   section: string;
   trainingField: TrainingField;
@@ -27,7 +33,6 @@ interface TrainingEntry {
 const years = ["Final", "3rd", "2nd"];
 const sections = ["All", "A", "B"];
 
-// ✅ Map UI year → backend year
 const yearMap: Record<string, string> = {
   Final: "4",
   "3rd": "3",
@@ -40,9 +45,8 @@ export default function TeacherTrainingPage() {
   const [loading, setLoading] = useState(true);
   const [selectedPreview, setSelectedPreview] = useState<TrainingEntry | null>(null);
   const [trainings, setTrainings] = useState<TrainingEntry[]>([]);
-  const [searchTerm, setSearchTerm] = useState(""); // ✅ Search state
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // ✅ Fetch all training records from backend
   useEffect(() => {
     const fetchTrainings = async () => {
       try {
@@ -56,7 +60,7 @@ export default function TeacherTrainingPage() {
               _id: t._id,
               studentName: t.student?.name || "N/A",
               urn: t.student?.URN || "N/A",
-              crn: t.student?.CRN || "", // ✅ Added
+              crn: t.student?.CRN || "",
               section: t.student?.section || "N/A",
               year: String(t.student?.year || ""),
               trainingField: t.trainingField,
@@ -68,9 +72,7 @@ export default function TeacherTrainingPage() {
               projectDescription: t.projectDescription,
               trainingDuration: t.trainingDuration,
               certificateAwarded: t.certificateAwarded,
-              certificatepdf: t.certificatepdf
-                ? t.certificatepdf.replace("/upload/", "/upload/fl_disposition:inline/")
-                : "",
+              certificatepdf: t.certificatepdf || "",
             };
           });
 
@@ -86,7 +88,6 @@ export default function TeacherTrainingPage() {
     fetchTrainings();
   }, []);
 
-  // ✅ Apply filters (year, section, search)
   const filteredTrainings = trainings
     .filter((t) => {
       if (!selectedYear) return true;
@@ -114,7 +115,6 @@ export default function TeacherTrainingPage() {
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        {/* BACK BUTTON */}
         <Link
           href={`/dashboard/teacher`}
           className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
@@ -124,7 +124,6 @@ export default function TeacherTrainingPage() {
           </svg>
         </Link>
 
-        {/* YEAR SELECTION */}
         {!selectedYear && (
           <>
             <h1 className="text-3xl font-bold text-indigo-700 mb-4">Select Year</h1>
@@ -142,7 +141,6 @@ export default function TeacherTrainingPage() {
           </>
         )}
 
-        {/* TRAINING TABLE */}
         {selectedYear && (
           <>
             <div className="flex justify-between items-center">
@@ -161,7 +159,6 @@ export default function TeacherTrainingPage() {
               </button>
             </div>
 
-            {/* SECTION FILTER + SEARCH */}
             <div className="mb-4 flex flex-col sm:flex-row gap-4 items-center">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-gray-700">Section:</span>
@@ -178,7 +175,6 @@ export default function TeacherTrainingPage() {
                 </select>
               </div>
 
-              {/* ✅ Search Box */}
               <input
                 type="text"
                 placeholder="Search by Name, URN, or CRN"
@@ -188,7 +184,6 @@ export default function TeacherTrainingPage() {
               />
             </div>
 
-            {/* TABLE */}
             <div className="overflow-x-auto shadow-md rounded-2xl bg-white">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-indigo-100">
@@ -234,10 +229,9 @@ export default function TeacherTrainingPage() {
           </>
         )}
 
-        {/* ✅ PREVIEW POPUP */}
         {selectedPreview && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-3xl p-6 max-w-4xl w-full relative shadow-lg">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-4xl w-full relative shadow-lg max-h-[90vh] overflow-y-auto">
               <button
                 onClick={() => setSelectedPreview(null)}
                 className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 font-bold text-xl"
@@ -249,7 +243,6 @@ export default function TeacherTrainingPage() {
                 {selectedPreview.studentName} ({selectedPreview.urn})
               </h2>
 
-              {/* Details */}
               <div className="space-y-2 text-gray-700 text-sm">
                 <p><strong>Training Code:</strong> {selectedPreview.trainingField}</p>
                 <p><strong>Organization:</strong> {selectedPreview.organisationName}</p>
@@ -265,24 +258,22 @@ export default function TeacherTrainingPage() {
                 </p>
               </div>
 
-              {/* ✅ Certificate PDF */}
+              {/* ✅ FIXED: Certificate PDF with proper view/download */}
               {selectedPreview.certificatepdf && (
-                <div className="mt-4">
-                  <p className="font-medium text-indigo-700 mb-2">Certificate Preview:</p>
-                  <iframe
-                    src={selectedPreview.certificatepdf}
-                    className="w-full h-80 border rounded-lg"
-                    title="Certificate PDF"
-                  ></iframe>
+                <div className="mt-4 flex gap-4">
+                  <a
+                    href={getInlineViewUrl(selectedPreview.certificatepdf)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition"
+                  >
+                    View Certificate
+                  </a>
 
                   <a
-                    href={selectedPreview.certificatepdf.replace(
-                      "/upload/fl_disposition:inline/",
-                      "/upload/fl_attachment:certificate/"
-                    )}
+                    href={selectedPreview.certificatepdf}
                     download
-                    target="_blank"
-                    className="mt-3 inline-block bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700"
+                    className="bg-green-600 text-white px-5 py-2 rounded-xl hover:bg-green-700 transition"
                   >
                     Download Certificate
                   </a>

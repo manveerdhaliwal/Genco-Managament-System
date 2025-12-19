@@ -20,13 +20,18 @@ const createTraining = async (req, res) => {
     let certificatepdfUrl = "";
 
     // Upload PDF to Cloudinary if file exists
-    if (req.file) {
-      const result = await uploadToCloudinary(
-        req.file.buffer,
-        "student_trainings"
-      );
-      certificatepdfUrl = result.secure_url;
-    }
+   if (req.file) {
+  const slugify = (text) =>
+    text.toString().toLowerCase().replace(/\s+/g, "_").replace(/[^\w\-]+/g, "");
+    
+  const result = await uploadToCloudinary(
+    req.file.buffer,
+    slugify(req.file.originalname), // safe name
+    "student_trainings"
+  );
+  certificatepdfUrl = result.secure_url;
+}
+
 
     // Check if training already exists
     let existing = await StudentTraining.findOne({
@@ -105,12 +110,18 @@ const updateTraining = async (req, res) => {
     const updates = req.body;
 
     if (req.file) {
-      const result = await uploadToCloudinary(
-        req.file.buffer,
-        "student_trainings"
-      );
-      updates.certificatepdf = result.secure_url;
-    }
+  const slugify = (text) =>
+    text.toString().toLowerCase().replace(/\s+/g, "_").replace(/[^\w\-]+/g, "");
+
+  const result = await uploadToCloudinary(
+    req.file.buffer,
+    slugify(req.file.originalname),
+    "student_trainings"
+  );
+
+  updates.certificatepdf = result.secure_url;
+}
+
 
     const updated = await StudentTraining.findByIdAndUpdate(id, updates, {
       new: true,

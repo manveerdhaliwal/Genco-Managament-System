@@ -3,6 +3,12 @@ import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import axios from "axios";
 
+// ✅ Google Drive Viewer for reliable inline PDF viewing
+const getInlineViewUrl = (url: string): string => {
+  if (!url) return "";
+  return `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+};
+
 type CertificateType = "Technical" | "Cultural" | "Sports";
 
 interface CertificateData {
@@ -10,13 +16,14 @@ interface CertificateData {
   type: CertificateType;
   eventName: string;
   date: string;
-  fileUrl?: string; // URL from backend
+  fileUrl?: string;
 }
 
 export default function CertificatePage() {
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateType | "">("");
   const [formData, setFormData] = useState<Partial<CertificateData>>({});
   const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string>("");
   const [submittedCertificates, setSubmittedCertificates] = useState<CertificateData[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -79,6 +86,11 @@ export default function CertificatePage() {
 
     setError("");
     setFile(f);
+    
+    // Create preview URL for local file
+    if (f.type === "application/pdf") {
+      setFilePreview(URL.createObjectURL(f));
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -128,6 +140,7 @@ export default function CertificatePage() {
         setFormData({});
         setSelectedCertificate("");
         setFile(null);
+        setFilePreview("");
         setEditingIndex(null);
         setError("");
       }
@@ -142,6 +155,7 @@ export default function CertificatePage() {
     setFormData(cert);
     setSelectedCertificate(cert.type);
     setFile(null);
+    setFilePreview("");
     setEditingIndex(index);
   };
 
@@ -158,6 +172,7 @@ export default function CertificatePage() {
         <Link
           href="/dashboard/student"
           className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+          aria-label="Go back"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -198,12 +213,23 @@ export default function CertificatePage() {
                 className="border border-gray-300 p-4 rounded-2xl focus:ring-2 focus:ring-indigo-300 shadow-sm"
                 required
               />
+              
+              <label className="font-medium text-gray-700 mt-2">
+                Upload Certificate (PDF/Image) - Max {MAX_FILE_SIZE_MB}MB
+              </label>
               <input
                 type="file"
                 accept="application/pdf,image/png,image/jpeg"
                 onChange={handleFileChange}
-                className="border border-gray-300 p-3 rounded-2xl"
+                className="border border-gray-300 p-3 rounded-2xl focus:ring-2 focus:ring-indigo-300"
               />
+              
+              {filePreview && (
+                <div className="mt-3 border border-gray-200 rounded-2xl overflow-hidden shadow-md">
+                  <p className="bg-indigo-600 text-white p-2 text-sm font-medium">File Preview</p>
+                  <iframe src={filePreview} className="w-full h-56 sm:h-72" title="File Preview"></iframe>
+                </div>
+              )}
             </div>
           )}
 
@@ -211,7 +237,7 @@ export default function CertificatePage() {
 
           <button
             type="submit"
-            className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold shadow-lg"
+            className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold hover:from-purple-500 hover:to-indigo-500 shadow-lg transition-all"
           >
             {editingIndex !== null ? "Update" : "Submit"}
           </button>
@@ -232,15 +258,23 @@ export default function CertificatePage() {
                   <p className="text-sm text-gray-600">📅 {cert.date}</p>
                   <p className="text-sm text-indigo-600 font-medium">🎯 {cert.type}</p>
 
+                  {/* ✅ View and Download Buttons */}
                   {cert.fileUrl && (
-                    <div className="mt-3">
+                    <div className="flex gap-3 mt-3">
                       <a
-                        href={cert.fileUrl}
+                        href={getInlineViewUrl(cert.fileUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-indigo-500 underline text-sm"
+                        className="px-3 py-1 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition"
                       >
-                        📂 Open File
+                        View Certificate
+                      </a>
+                      <a
+                        href={cert.fileUrl}
+                        download
+                        className="px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                      >
+                        Download
                       </a>
                     </div>
                   )}
@@ -248,7 +282,7 @@ export default function CertificatePage() {
 
                 <button
                   onClick={() => handleEdit(index)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600"
+                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition"
                 >
                   Edit
                 </button>
@@ -260,4 +294,3 @@ export default function CertificatePage() {
     </div>
   );
 }
-

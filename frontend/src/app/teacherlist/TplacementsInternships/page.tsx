@@ -3,6 +3,12 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+// ✅ Google Drive Viewer for reliable inline PDF viewing
+const getInlineViewUrl = (url: string): string => {
+  if (!url) return "";
+  return `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+};
+
 interface PlacementEntry {
   _id?: string;
   studentName: string;
@@ -13,6 +19,7 @@ interface PlacementEntry {
   description: string;
   year: string;
   yearOfPlacement: string;
+  packageInfo?: string;
   pdfPreview: string | null;
 }
 
@@ -25,7 +32,8 @@ export default function PlacementInternshipPage() {
   const [placements, setPlacements] = useState<PlacementEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState(""); // ✅ NEW
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlacement, setSelectedPlacement] = useState<PlacementEntry | null>(null);
 
   useEffect(() => {
     const fetchPlacements = async () => {
@@ -47,6 +55,7 @@ export default function PlacementInternshipPage() {
             description: p.companyDescription,
             year: String(p.student?.year || ""),
             yearOfPlacement: p.yearOfPlacement,
+            packageInfo: p.package,
             pdfPreview: p.offerLetterUrl || null,
           }));
 
@@ -73,7 +82,7 @@ export default function PlacementInternshipPage() {
 
   const activeYear = selectedYear ? yearMap[selectedYear] : "";
 
-  // ✅ Enhanced filtering (Year + Section + Search)
+  // Enhanced filtering (Year + Section + Search)
   const filteredPlacements = placements
     .filter((p) => (selectedYear ? p.year === activeYear : true))
     .filter((p) => (selectedSection === "All" ? true : p.section === selectedSection))
@@ -85,8 +94,21 @@ export default function PlacementInternshipPage() {
     )
     .sort((a, b) => a.urn.localeCompare(b.urn));
 
-  if (loading) return <p className="p-6">Loading placements...</p>;
-  if (error) return <p className="p-6 text-red-500">{error}</p>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-gray-600">
+        Loading placements...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 sm:p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
@@ -117,7 +139,7 @@ export default function PlacementInternshipPage() {
                 <div
                   key={year}
                   onClick={() => setSelectedYear(year)}
-                  className="cursor-pointer bg-white shadow-lg rounded-2xl p-6 hover:shadow-xl transition"
+                  className="cursor-pointer bg-white shadow-lg rounded-2xl p-6 flex flex-col items-center justify-center hover:shadow-xl transition"
                 >
                   <h2 className="text-xl font-semibold text-indigo-700">{year} Year</h2>
                 </div>
@@ -151,7 +173,7 @@ export default function PlacementInternshipPage() {
               <div className="flex items-center gap-3">
                 <span className="font-medium text-gray-700">Section:</span>
                 <select
-                  className="border border-gray-300 rounded-xl px-4 py-2"
+                  className="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-indigo-400 outline-none"
                   value={selectedSection}
                   onChange={(e) => setSelectedSection(e.target.value)}
                 >
@@ -163,7 +185,7 @@ export default function PlacementInternshipPage() {
                 </select>
               </div>
 
-              {/* ✅ Search bar */}
+              {/* Search bar */}
               <input
                 type="text"
                 placeholder="Search by name, URN, org, or title..."
@@ -181,12 +203,9 @@ export default function PlacementInternshipPage() {
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">URN</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Student</th>
                     <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Section</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Title</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Organization</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Description</th>
-                    <th className="px-6 py-3 text-center text-sm font-medium text-gray-700">
-                      Offer Letter
-                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
+                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Company</th>
+                    <th className="px-6 py-3 text-center text-sm font-medium text-gray-700">View</th>
                   </tr>
                 </thead>
 
@@ -199,27 +218,20 @@ export default function PlacementInternshipPage() {
                         <td className="px-6 py-4 text-sm text-gray-800">{p.section}</td>
                         <td className="px-6 py-4 text-sm text-gray-800">{p.title}</td>
                         <td className="px-6 py-4 text-sm text-gray-800">{p.organization}</td>
-                        <td className="px-6 py-4 text-sm text-gray-800">{p.description}</td>
                         <td className="px-6 py-4 text-center">
-                          {p.pdfPreview ? (
-                            <a
-                              href={p.pdfPreview}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700 transition"
-                            >
-                              View
-                            </a>
-                          ) : (
-                            <span className="text-gray-400">N/A</span>
-                          )}
+                          <button
+                            onClick={() => setSelectedPlacement(p)}
+                            className="bg-indigo-600 text-white px-4 py-1 rounded-xl hover:bg-indigo-700 transition"
+                          >
+                            View
+                          </button>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={6}
                         className="text-center py-6 text-gray-500 italic"
                       >
                         No results found.
@@ -230,6 +242,63 @@ export default function PlacementInternshipPage() {
               </table>
             </div>
           </>
+        )}
+
+        {/* ✅ PLACEMENT PREVIEW MODAL */}
+        {selectedPlacement && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-4xl w-full relative shadow-lg max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setSelectedPlacement(null)}
+                className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 font-bold text-2xl w-8 h-8 flex items-center justify-center"
+              >
+                &times;
+              </button>
+
+              <h2 className="text-2xl font-semibold mb-4 text-indigo-700">
+                {selectedPlacement.studentName} ({selectedPlacement.urn})
+              </h2>
+
+              <div className="space-y-2 text-gray-700 text-sm">
+                <p><strong>Section:</strong> {selectedPlacement.section}</p>
+                <p><strong>Role:</strong> {selectedPlacement.title}</p>
+                <p><strong>Company:</strong> {selectedPlacement.organization}</p>
+                {selectedPlacement.packageInfo && (
+                  <p><strong>Package:</strong> {selectedPlacement.packageInfo}</p>
+                )}
+                <p><strong>Year of Placement:</strong> {selectedPlacement.yearOfPlacement}</p>
+                {selectedPlacement.description && (
+                  <p><strong>Description:</strong> {selectedPlacement.description}</p>
+                )}
+              </div>
+
+              {/* ✅ View and Download Buttons */}
+              {selectedPlacement.pdfPreview && (
+                <div className="mt-6 flex gap-4 flex-wrap">
+                  <a
+                    href={getInlineViewUrl(selectedPlacement.pdfPreview)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition"
+                  >
+                    View Offer Letter
+                  </a>
+
+                  <a
+                    href={selectedPlacement.pdfPreview}
+                    download
+                    className="bg-green-600 text-white px-5 py-2 rounded-xl hover:bg-green-700 transition"
+                  >
+                    Download Offer Letter
+                  </a>
+                </div>
+              )}
+
+              {!selectedPlacement.pdfPreview && (
+                <p className="mt-6 text-gray-500 italic">No offer letter available</p>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

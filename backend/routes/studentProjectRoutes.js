@@ -19,6 +19,6 @@ router.put("/:id", authMiddleware, checkRole("student"), updateProject);
 
 // Teacher/Admin
 router.get("/", authMiddleware, checkRole("teacher", "admin"), getAllProjects);
-router.get("/:studentId", authMiddleware, checkRole("teacher", "admin"), getProjectsByStudent);
+router.get("/student/:studentId", authMiddleware, checkRole("teacher", "admin"), getProjectsByStudent);
 
 module.exports = router;

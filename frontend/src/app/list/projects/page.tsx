@@ -1,264 +1,276 @@
 "use client";
+
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import axios from "axios";
+
+/* ================= TYPES ================= */
 
 type ProjectStatus = "ongoing" | "completed";
 
-type ProjectData = {
-  name: string;
-  urn: string;
-  projectTitle: string;
-  description: string;
-  guideName: string;
-  status: ProjectStatus;
-  projectLink: string; // GitHub / demo link
-};
+interface ProjectData {
+  _id?: string;
+  projectName: string;
+  projectDescription: string;
+  projectGuide: string;
+  projectStatus: ProjectStatus;
+  githubRepoUrl?: string;
+  hostedUrl?: string;
+}
+
+/* ================= COMPONENT ================= */
 
 export default function ProjectPage() {
-  const [formData, setFormData] = useState<ProjectData>({
-    name: "",
-    urn: "",
-    projectTitle: "",
-    description: "",
-    guideName: "",
-    status: "ongoing",
-    projectLink: "",
+  const [formData, setFormData] = useState<Partial<ProjectData>>({
+    projectStatus: "ongoing",
   });
 
   const [submittedProjects, setSubmittedProjects] = useState<ProjectData[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [isFormVisible, setIsFormVisible] = useState(true);
 
-  // Load saved projects from localStorage
+  /* ================= FETCH PROJECTS ================= */
+
+  const fetchProjects = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/Projects/me", {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+
+      if (res.data.success) {
+        setSubmittedProjects(res.data.data);
+      }
+    } catch (err) {
+      console.error("Fetch projects error:", err);
+    }
+  };
+
   useEffect(() => {
-    const saved = localStorage.getItem("projects");
-    if (saved) setSubmittedProjects(JSON.parse(saved));
+    fetchProjects();
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  /* ================= HANDLERS ================= */
+
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    if (name === "urn" && !/^\d*$/.test(value)) return;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value as ProjectStatus;
-    setFormData((prev) => ({ ...prev, status: value }));
+  const handleStatusChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      projectStatus: e.target.value as ProjectStatus,
+    }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // Validation
-    if (
-      !formData.name ||
-      !formData.urn ||
-      !formData.projectTitle ||
-      !formData.description ||
-      !formData.guideName ||
-      !formData.status ||
-      !formData.projectLink
-    ) {
-      setError("Please fill in all required fields.");
-      return;
+    const requiredFields = [
+      "projectName",
+      "projectDescription",
+      "projectGuide",
+      "projectStatus",
+    ];
+
+    for (const field of requiredFields) {
+      if (!formData[field as keyof ProjectData]) {
+        setError("Please fill all required fields.");
+        return;
+      }
     }
 
-    const updatedProjects = [...submittedProjects, formData];
-    setSubmittedProjects(updatedProjects);
-    localStorage.setItem("projects", JSON.stringify(updatedProjects));
+    try {
+      const token = localStorage.getItem("token");
 
-    setError("");
-    setIsFormVisible(false);
+      if (editingIndex !== null && submittedProjects[editingIndex]?._id) {
+        // UPDATE
+        await axios.put(
+          `http://localhost:5000/api/Projects/${submittedProjects[editingIndex]._id}`,
+          formData,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          }
+        );
+      } else {
+        // CREATE
+        await axios.post("http://localhost:5000/api/Projects", formData, {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true,
+        });
+      }
+
+      await fetchProjects();
+      setFormData({ projectStatus: "ongoing" });
+      setEditingIndex(null);
+      setError("");
+    } catch (err) {
+      console.error("Submit project error:", err);
+      setError("Failed to submit project.");
+    }
   };
 
   const handleEdit = (index: number) => {
     setFormData(submittedProjects[index]);
-    setSubmittedProjects((prev) => prev.filter((_, i) => i !== index));
-    localStorage.setItem(
-      "projects",
-      JSON.stringify(submittedProjects.filter((_, i) => i !== index))
-    );
-    setIsFormVisible(true);
+    setEditingIndex(index);
   };
 
-  const handleAddNew = () => {
-    setFormData({
-      name: "",
-      urn: "",
-      projectTitle: "",
-      description: "",
-      guideName: "",
-      status: "ongoing",
-      projectLink: "",
-    });
-    setIsFormVisible(true);
-  };
+  /* ================= UI ================= */
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start p-4 sm:p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
-      <div className="w-full max-w-3xl p-8 sm:p-10 bg-white shadow-2xl rounded-3xl border border-gray-200 mb-6">
+    <div className="min-h-screen flex flex-col items-center p-6 bg-gradient-to-tr from-[#EDF9FD] to-[#FFFFFF]">
+      <div className="w-full max-w-3xl p-8 bg-white shadow-2xl rounded-3xl border border-gray-200">
         <Link
           href="/dashboard/student"
-          className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
-          aria-label="Go back"
+          className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600"
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
-          </svg>
+          ←
         </Link>
 
         <h2 className="text-3xl font-bold mb-8 text-center text-indigo-700">
-          💡 Project Submission
+          💡 Student Project
         </h2>
 
-        {isFormVisible && (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <div className="flex gap-6 items-center">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="status"
-                  value="ongoing"
-                  checked={formData.status === "ongoing"}
-                  onChange={handleStatusChange}
-                  className="w-4 h-4 accent-indigo-600"
-                />
-                Ongoing
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="status"
-                  value="completed"
-                  checked={formData.status === "completed"}
-                  onChange={handleStatusChange}
-                  className="w-4 h-4 accent-indigo-600"
-                />
-                Completed
-              </label>
-            </div>
+        {/* ================= FORM ================= */}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* STATUS */}
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2">
               <input
-                type="text"
-                name="name"
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="border border-gray-300 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition shadow-sm"
-                required
+                type="radio"
+                value="ongoing"
+                checked={formData.projectStatus === "ongoing"}
+                onChange={handleStatusChange}
               />
+              Ongoing
+            </label>
+
+            <label className="flex items-center gap-2">
               <input
-                type="text"
-                name="urn"
-                placeholder="URN"
-                value={formData.urn}
-                onChange={handleInputChange}
-                className="border border-gray-300 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition shadow-sm"
-                required
+                type="radio"
+                value="completed"
+                checked={formData.projectStatus === "completed"}
+                onChange={handleStatusChange}
               />
-            </div>
-
-            <input
-              type="text"
-              name="projectTitle"
-              placeholder="Project Title"
-              value={formData.projectTitle}
-              onChange={handleInputChange}
-              className="border border-gray-300 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition shadow-sm"
-              required
-            />
-
-            <textarea
-              name="description"
-              placeholder="Project Description"
-              value={formData.description}
-              onChange={handleInputChange}
-              className="border border-gray-300 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition shadow-sm"
-              rows={4}
-              required
-            />
-
-            <input
-              type="text"
-              name="guideName"
-              placeholder="Guide / Mentor Name"
-              value={formData.guideName}
-              onChange={handleInputChange}
-              className="border border-gray-300 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition shadow-sm"
-              required
-            />
-
-            <input
-              type="text"
-              name="projectLink"
-              placeholder="Project Link / Repository (GitHub)"
-              value={formData.projectLink}
-              onChange={handleInputChange}
-              className="border border-gray-300 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 transition shadow-sm"
-              required
-            />
-
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-
-            <button
-              type="submit"
-              className="mt-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold hover:from-purple-500 hover:to-indigo-500 shadow-lg transition-all"
-            >
-              Submit
-            </button>
-          </form>
-        )}
-
-        {!isFormVisible && (
-          <div className="flex justify-center mt-4">
-            <button
-              onClick={handleAddNew}
-              className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2 px-6 rounded-2xl font-semibold hover:from-indigo-400 hover:to-purple-400 shadow-md transition-all"
-            >
-              + Add New Project
-            </button>
+              Completed
+            </label>
           </div>
-        )}
+
+          <input
+            name="projectName"
+            placeholder="Project Name"
+            value={formData.projectName || ""}
+            onChange={handleInputChange}
+            className="border p-4 rounded-2xl"
+            required
+          />
+
+          <textarea
+            name="projectDescription"
+            placeholder="Project Description"
+            value={formData.projectDescription || ""}
+            onChange={handleInputChange}
+            rows={4}
+            className="border p-4 rounded-2xl"
+            required
+          />
+
+          <input
+            name="projectGuide"
+            placeholder="Project Guide / Mentor"
+            value={formData.projectGuide || ""}
+            onChange={handleInputChange}
+            className="border p-4 rounded-2xl"
+            required
+          />
+
+          <input
+            name="githubRepoUrl"
+            placeholder="GitHub Repository URL"
+            value={formData.githubRepoUrl || ""}
+            onChange={handleInputChange}
+            className="border p-4 rounded-2xl"
+          />
+
+          <input
+            name="hostedUrl"
+            placeholder="Hosted URL (optional)"
+            value={formData.hostedUrl || ""}
+            onChange={handleInputChange}
+            className="border p-4 rounded-2xl"
+          />
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          <button
+            type="submit"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-semibold"
+          >
+            {editingIndex !== null ? "Update Project" : "Submit Project"}
+          </button>
+        </form>
       </div>
 
+      {/* ================= LIST ================= */}
+
       {submittedProjects.length > 0 && (
-        <div className="w-full max-w-3xl flex flex-col gap-5">
-          <h3 className="text-2xl font-bold text-indigo-700 mb-4">Submitted Projects</h3>
-          {submittedProjects.map((proj, index) => (
-            <div key={index} className="border border-gray-200 p-4 rounded-3xl shadow-md bg-white relative">
-              <button
-                type="button"
-                onClick={() => handleEdit(index)}
-                className="absolute top-3 right-3 text-blue-600 font-bold hover:text-blue-800"
+        <div className="w-full max-w-3xl mt-8">
+          <h3 className="text-2xl font-bold text-indigo-700 mb-4">
+            📂 Submitted Projects
+          </h3>
+
+          <div className="flex flex-col gap-4">
+            {submittedProjects.map((project, index) => (
+              <div
+                key={project._id}
+                className="p-5 bg-white border rounded-2xl shadow-md flex justify-between"
               >
-                ✎ Edit
-              </button>
-              <p><span className="font-medium">Status:</span> {proj.status.toUpperCase()}</p>
-              <p><span className="font-medium">Name:</span> {proj.name}</p>
-              <p><span className="font-medium">URN:</span> {proj.urn}</p>
-              <p><span className="font-medium">Title:</span> {proj.projectTitle}</p>
-              <p><span className="font-medium">Guide:</span> {proj.guideName}</p>
-              <p><span className="font-medium">Description:</span> {proj.description}</p>
-              <p>
-                <span className="font-medium">Link:</span>{" "}
-                <a href={proj.projectLink} target="_blank" className="text-indigo-600 hover:underline">
-                  {proj.projectLink}
-                </a>
-              </p>
-            </div>
-          ))}
+                <div>
+                  <p className="font-bold">{project.projectName}</p>
+                  <p className="text-sm">Status: {project.projectStatus}</p>
+                  <p className="text-sm">Guide: {project.projectGuide}</p>
+                  <p className="text-sm">{project.projectDescription}</p>
+
+                  {project.githubRepoUrl && (
+                    <a
+                      href={project.githubRepoUrl}
+                      target="_blank"
+                      className="text-indigo-600 underline text-sm"
+                    >
+                      GitHub Repo
+                    </a>
+                  )}
+
+                  {project.hostedUrl && (
+                    <p>
+                      <a
+                        href={project.hostedUrl}
+                        target="_blank"
+                        className="text-indigo-600 underline text-sm"
+                      >
+                        Live Demo
+                      </a>
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handleEdit(index)}
+                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl"
+                >
+                  Edit
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 }
-
-

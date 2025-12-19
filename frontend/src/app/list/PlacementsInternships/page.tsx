@@ -1,8 +1,14 @@
 "use client";
 
-
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
+import Link from "next/link";
+
+// ✅ Google Drive Viewer for reliable inline PDF viewing
+const getInlineViewUrl = (url: string): string => {
+  if (!url) return "";
+  return `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+};
 
 interface PlacementData {
   _id?: string;
@@ -11,7 +17,7 @@ interface PlacementData {
   package: string;
   companyDescription: string;
   yearOfPlacement: string;
-  offerLetterUrl?: string; // Cloudinary PDF URL
+  offerLetterUrl?: string;
   pdfFile?: File;
   pdfPreview?: string;
 }
@@ -21,6 +27,8 @@ const PlacementsPage: React.FC = () => {
   const [submittedPlacements, setSubmittedPlacements] = useState<PlacementData[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
+
+  const MAX_FILE_SIZE_MB = 5;
 
   // 🔹 Fetch existing placements on load
   useEffect(() => {
@@ -45,21 +53,27 @@ const PlacementsPage: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🔹 Handle PDF upload
+  // 🔹 Handle PDF upload with validation
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type !== "application/pdf") {
-        setError("Only PDF files are allowed.");
-        return;
-      }
-      setError("");
-      setFormData((prev) => ({
-        ...prev,
-        pdfFile: file,
-        pdfPreview: URL.createObjectURL(file),
-      }));
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      setError("Only PDF files are allowed.");
+      return;
     }
+
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setError(`File size must be less than ${MAX_FILE_SIZE_MB} MB.`);
+      return;
+    }
+
+    setError("");
+    setFormData((prev) => ({
+      ...prev,
+      pdfFile: file,
+      pdfPreview: URL.createObjectURL(file),
+    }));
   };
 
   // 🔹 Submit form
@@ -134,128 +148,168 @@ const PlacementsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-indigo-50 to-indigo-100 py-10">
-        
-      <h2 className="text-4xl font-bold mb-8 text-indigo-700">📌 Placement Details</h2>
-
-
-      {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-2xl p-8 bg-white rounded-2xl shadow-lg border border-indigo-100"
-      >
-        {error && <p className="mb-4 text-red-500">{error}</p>}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <input
-            type="text"
-            name="companyName"
-            value={formData.companyName || ""}
-            onChange={handleChange}
-            placeholder="Company Name"
-            className="p-3 border rounded-lg"
-            required
-          />
-          <input
-            type="text"
-            name="role"
-            value={formData.role || ""}
-            onChange={handleChange}
-            placeholder="Role"
-            className="p-3 border rounded-lg"
-            required
-          />
-          <input
-            type="text"
-            name="package"
-            value={formData.package || ""}
-            onChange={handleChange}
-            placeholder="Package"
-            className="p-3 border rounded-lg"
-            required
-          />
-          <input
-            type="text"
-            name="yearOfPlacement"
-            value={formData.yearOfPlacement || ""}
-            onChange={handleChange}
-            placeholder="Year of Placement"
-            className="p-3 border rounded-lg"
-            required
-          />
-        </div>
-
-        <textarea
-          name="companyDescription"
-          value={formData.companyDescription || ""}
-          onChange={handleChange}
-          placeholder="Company Description"
-          className="w-full mt-6 p-3 border rounded-lg"
-        />
-
-        {/* PDF Upload */}
-        <div className="mt-6">
-          <label className="block mb-2 text-sm font-medium">Upload Offer Letter (PDF)</label>
-          <input type="file" accept="application/pdf" onChange={handleFileChange} />
-          {formData.pdfPreview && (
-            <a
-              href={formData.pdfPreview}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block mt-2 text-indigo-600 underline"
-            >
-              Preview PDF
-            </a>
-          )}
-        </div>
-
-        <button
-          type="submit"
-          className="mt-6 w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700"
+    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-indigo-50 to-indigo-100 py-10 px-4">
+      <div className="w-full max-w-4xl">
+        {/* Back Button */}
+        <Link
+          href="/dashboard/student"
+          className="mb-4 inline-flex items-center justify-center w-10 h-10 bg-indigo-500 text-white rounded-full shadow hover:bg-indigo-600 transition duration-200"
+          aria-label="Go back"
         >
-          {editingIndex !== null ? "Update Placement" : "Submit Placement"}
-        </button>
-      </form>
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </Link>
 
-      {/* Submitted Placements */}
-      {submittedPlacements.length > 0 && (
-        <div className="w-full max-w-3xl mt-8">
-          <h3 className="text-2xl font-semibold mb-4 text-indigo-700">📑 Submitted Placements</h3>
-          <div className="flex flex-col gap-4">
-            {submittedPlacements.map((placement, index) => (
-              <div
-                key={index}
-                className="p-5 bg-white border rounded-2xl shadow-md flex justify-between items-start"
-              >
-                <div>
-                  <p className="font-bold">{placement.companyName}</p>
-                  <p className="text-sm text-gray-600">Role: {placement.role}</p>
-                  <p className="text-sm text-gray-600">Package: {placement.package}</p>
-                  <p className="text-sm text-gray-600">Year: {placement.yearOfPlacement}</p>
-                  <p className="text-sm text-gray-600">
-                    Description: {placement.companyDescription}
-                  </p>
-                  {placement.offerLetterUrl && (
-                    <a
-                      href={placement.offerLetterUrl}
-                      target="_blank"
-                      className="text-indigo-600 underline text-sm"
-                    >
-                      View PDF
-                    </a>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleEdit(index)}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600"
-                >
-                  Edit
-                </button>
-              </div>
-            ))}
+        <h2 className="text-4xl font-bold mb-8 text-indigo-700">📌 Placement Details</h2>
+
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="w-full p-8 bg-white rounded-2xl shadow-lg border border-indigo-100"
+        >
+          {error && <p className="mb-4 text-red-500 text-sm">{error}</p>}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <input
+              type="text"
+              name="companyName"
+              value={formData.companyName || ""}
+              onChange={handleChange}
+              placeholder="Company Name"
+              className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
+              required
+            />
+            <input
+              type="text"
+              name="role"
+              value={formData.role || ""}
+              onChange={handleChange}
+              placeholder="Role"
+              className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
+              required
+            />
+            <input
+              type="text"
+              name="package"
+              value={formData.package || ""}
+              onChange={handleChange}
+              placeholder="Package (e.g., 12 LPA)"
+              className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
+              required
+            />
+            <input
+              type="text"
+              name="yearOfPlacement"
+              value={formData.yearOfPlacement || ""}
+              onChange={handleChange}
+              placeholder="Year of Placement (e.g., 2024)"
+              className="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none"
+              required
+            />
           </div>
-        </div>
-      )}
+
+          <textarea
+            name="companyDescription"
+            value={formData.companyDescription || ""}
+            onChange={handleChange}
+            placeholder="Company Description"
+            className="w-full mt-6 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none resize-none"
+            rows={4}
+          />
+
+          {/* PDF Upload */}
+          <div className="mt-6">
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Upload Offer Letter (PDF) - Max {MAX_FILE_SIZE_MB}MB
+            </label>
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={handleFileChange}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400"
+            />
+            {formData.pdfPreview && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-600 mb-2">Preview:</p>
+                <iframe
+                  src={formData.pdfPreview}
+                  className="w-full h-64 rounded border"
+                  title="PDF Preview"
+                />
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="mt-6 w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-purple-500 hover:to-indigo-500 shadow-lg transition-all"
+          >
+            {editingIndex !== null ? "Update Placement" : "Submit Placement"}
+          </button>
+        </form>
+
+        {/* Submitted Placements */}
+        {submittedPlacements.length > 0 && (
+          <div className="w-full mt-8">
+            <h3 className="text-2xl font-semibold mb-4 text-indigo-700">📑 Submitted Placements</h3>
+            <div className="flex flex-col gap-4">
+              {submittedPlacements.map((placement, index) => (
+                <div
+                  key={index}
+                  className="p-5 bg-white border border-gray-200 rounded-2xl shadow-md flex flex-col sm:flex-row justify-between items-start gap-4"
+                >
+                  <div className="flex-1">
+                    <p className="font-bold text-lg text-gray-800">{placement.companyName}</p>
+                    <p className="text-sm text-gray-600">Role: {placement.role}</p>
+                    <p className="text-sm text-gray-600">Package: {placement.package}</p>
+                    <p className="text-sm text-gray-600">Year: {placement.yearOfPlacement}</p>
+                    {placement.companyDescription && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Description: {placement.companyDescription}
+                      </p>
+                    )}
+
+                    {/* ✅ View and Download Buttons */}
+                    {placement.offerLetterUrl && (
+                      <div className="flex gap-3 mt-3">
+                        <a
+                          href={getInlineViewUrl(placement.offerLetterUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition"
+                        >
+                          View Offer Letter
+                        </a>
+                        <a
+                          href={placement.offerLetterUrl}
+                          download
+                          className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                        >
+                          Download
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleEdit(index)}
+                    className="px-5 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition whitespace-nowrap"
+                  >
+                    Edit
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

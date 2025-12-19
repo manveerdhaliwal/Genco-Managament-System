@@ -1,68 +1,119 @@
 const StudentProject = require("../models/StudentProject");
 
-// Create new project (Student only)
+// 🔹 Create OR Update Project
 const createProject = async (req, res) => {
   try {
+    const studentId = req.user.id;
+    const {
+      projectName,
+      projectDescription,
+      projectGuide,
+      projectStatus,
+      githubRepoUrl,
+      hostedUrl,
+    } = req.body;
+
+    // Check if project already exists (same name)
+    let existing = await StudentProject.findOne({
+      student: studentId,
+      projectName,
+    });
+
+    if (existing) {
+      existing = await StudentProject.findOneAndUpdate(
+        { student: studentId, projectName },
+        {
+          projectDescription,
+          projectGuide,
+          projectStatus,
+          githubRepoUrl,
+          hostedUrl,
+        },
+        { new: true }
+      );
+
+      return res.json({
+        success: true,
+        message: "Project updated!",
+        data: existing,
+      });
+    }
+
+    // Create new project
     const newProject = new StudentProject({
-      ...req.body,
-      student: req.user.id, // studentId from token
+      student: studentId,
+      projectName,
+      projectDescription,
+      projectGuide,
+      projectStatus,
+      githubRepoUrl,
+      hostedUrl,
     });
 
     await newProject.save();
-    res.status(201).json({ success: true, message: "Project created successfully!", data: newProject });
+    await newProject.populate("student", "name email URN section year");
+
+    res.status(201).json({
+      success: true,
+      message: "Project saved!",
+      data: newProject,
+    });
   } catch (error) {
     console.error("Create Project Error:", error);
-    res.status(500).json({ success: false, message: "Error creating project" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// Get own projects (Student only)
+// 🔹 Get Logged-in Student Projects
 const getMyProjects = async (req, res) => {
   try {
-    const projects = await StudentProject.find({ student: req.user.id });
+    const projects = await StudentProject.find({
+      student: req.user.id,
+    }).populate("student", "name email URN section year");
+
     res.json({ success: true, data: projects });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching projects" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// Update project (Student only)
+// 🔹 Update Project by ID
 const updateProject = async (req, res) => {
   try {
-    const updatedProject = await StudentProject.findOneAndUpdate(
-      { _id: req.params.id, student: req.user.id },
+    const updated = await StudentProject.findByIdAndUpdate(
+      req.params.id,
       req.body,
       { new: true }
-    );
+    ).populate("student", "name email URN section year");
 
-    if (!updatedProject) {
-      return res.status(404).json({ success: false, message: "Project not found or not yours!" });
-    }
+    if (!updated)
+      return res.status(404).json({ success: false, message: "Project not found" });
 
-    res.json({ success: true, message: "Project updated successfully", data: updatedProject });
+    res.json({
+      success: true,
+      message: "Project updated!",
+      data: updated,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error updating project" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// Teacher/Admin: Get all projects
+// 🔹 Admin/Teacher
 const getAllProjects = async (req, res) => {
-  try {
-    const projects = await StudentProject.find().populate("student", "name email");
-    res.json({ success: true, data: projects });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching all projects" });
-  }
+  const projects = await StudentProject.find().populate(
+    "student",
+    "name email URN section year"
+  );
+  res.json({ success: true, data: projects });
 };
 
-// Teacher/Admin: Get projects by student ID
 const getProjectsByStudent = async (req, res) => {
-  try {
-    const projects = await StudentProject.find({ student: req.params.studentId }).populate("student", "name email");
-    res.json({ success: true, data: projects });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching student projects" });
-  }
+  const projects = await StudentProject.find({
+    student: req.params.studentId,
+  }).populate("student", "name email URN section year");
+
+  res.json({ success: true, data: projects });
 };
 
 module.exports = {
